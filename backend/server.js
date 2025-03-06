@@ -1,13 +1,14 @@
 const express = require('express');
 const sqlite3 = require('sqlite3');
 const bodyParser = require('body-parser');
+const cors = require('cors');
 
 const app = express();
 
 //TODO: Verbinde eine Datenbank dazu
 
 const db = new sqlite3.Database('./tasks.db');
-
+app.use(cors());                // Middleware
 app.use(bodyParser.json());     // Middleware (wie ein Übersetzer)
 
 
