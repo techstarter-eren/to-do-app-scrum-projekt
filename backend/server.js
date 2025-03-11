@@ -22,6 +22,10 @@ app.get('/', (req, res) => {
     res.send('request received');
 });
 
+app.get('/lachs_suschi', (req, res) => {
+    res.send("hier ist ein leckeres Lachs Sushi!"
+)});
+
 app.get('/ralf', (req, res) => {
     res.send('vielen Dank Ralf');
 });
