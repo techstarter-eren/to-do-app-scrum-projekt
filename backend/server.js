@@ -19,8 +19,8 @@ db.run('CREATE TABLE IF NOT EXISTS tasks (id INTEGER PRIMARY KEY AUTOINCREMENT, 
 
 
 app.get('/', (req, res) => {
-    res.send('request received');
-});
+    res.send('genau'
+);});
 
 app.get('/lachs_suschi', (req, res) => {
     res.send("hier ist ein leckeres Lachs Sushi!"
