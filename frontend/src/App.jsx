@@ -31,7 +31,14 @@ function App() {
     setTitle("");
   }
   
-  console.log(tasks)
+  const itemLoeschen = (id_nummer) => {
+    //console.log("Gedrückte Taste:" + id_nummer);
+    fetch(`http://localhost:3050/delete/${id_nummer}`, {
+      method: "DELETE",
+    })
+
+  }
+
 
   return (
     <>
@@ -43,7 +50,9 @@ function App() {
         {// hier gehört der Code, um die To-Do Liste dynamisch zu gestalten
         tasks.map(({id, title, completed}) => (
           <li key={id}>
-            <input type='checkbox' /> {title}
+            <input type='checkbox' />
+            {title}
+            <button onClick={() => itemLoeschen(id)}>X</button>
           </li>
         ))
         }

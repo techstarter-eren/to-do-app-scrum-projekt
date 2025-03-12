@@ -47,6 +47,10 @@ app.get('/liste_abrufen', (req, res) => {
 });
 
 
+app.delete('/delete/:id', (req, res) => {
+    db.run('DELETE FROM tasks WHERE id = ?', req.params.id, () =>{res.json({message: "Eingabe gelöscht"})});
+})
+
 
 app.listen(3050, "localhost", () => {
     console.log("bald wird es Mittagspause")
