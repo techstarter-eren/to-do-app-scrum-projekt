@@ -33,7 +33,7 @@ app.get('/ralf', (req, res) => {
 // Wenn ein neues Item hinzugefügt werden soll, soll NodeJS Server diesen Request so behandeln:
 app.post('/add', (req, res) => {
     db.run('INSERT INTO tasks (title) VALUES (?)', [req.body.title], function () {
-        res.json({tag: "Mittwoch", bald_wirds: "Mittagspause"});
+        res.json({id: this.lastID, title: req.body.title, completed: 0});
     });
 });
 

@@ -17,7 +17,11 @@ function App() {
       method: "POST",
       headers: {"Content-Type": "application/json"},
       body: JSON.stringify({title}),
-    });
+    })      
+    // hier möchte ich, dass die Liste in der App auch aktualisiert wird
+      .then((res) => res.json())
+      .then((neueAufgabe) => setTasks([...tasks, neueAufgabe]))
+
     setTitle("");
   }
   
