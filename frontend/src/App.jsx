@@ -13,6 +13,12 @@ function App() {
 
   const itemHinzufuegen = () => {
 
+    //Option 1 für Eingabecheck: falls Eingabefeld leer ist, mach nicht weiter
+
+    if (!title) {
+      return;
+    }
+
     fetch("http://localhost:3050/add", {
       method: "POST",
       headers: {"Content-Type": "application/json"},
@@ -31,7 +37,7 @@ function App() {
     <>
       <h1>To-Do List</h1>
       <input value={title}  onChange={(e)=>setTitle(e.target.value)} />
-      <button onClick={itemHinzufuegen}>Add</button>
+      <button disabled={!title.trim()} onClick={itemHinzufuegen}>Add</button> {/* Option 2 für Eingabecheck: Button wird disabled bleiben wenn das Eingabefeld leer ist*/}
 
       <ul>
         {// hier gehört der Code, um die To-Do Liste dynamisch zu gestalten
