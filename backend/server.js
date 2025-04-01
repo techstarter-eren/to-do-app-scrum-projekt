@@ -7,11 +7,11 @@ const app = express();
 
 // Verbindung zur Datenbank
 const db = new sqlite3.Database('./tasks.db');
-app.use(cors());                
-app.use(bodyParser.json());     
+app.use(cors());
+app.use(bodyParser.json());
 
 // Tabelle erstellen, falls sie nicht existiert
-db.run('CREATE TABLE IF NOT EXISTS tasks (id INTEGER PRIMARY KEY AUTOINCREMENT, title TEXT, completed BOOLEAN DEFAULT 0)');
+db.run('CREATE TABLE IF NOT EXISTS tasks (id INTEGER PRIMARY KEY AUTOINCREMENT, title TEXT, completed INTEGER DEFAULT 0)');
 
 // Requests und Responses
 
@@ -29,8 +29,8 @@ app.get('/ralf', (req, res) => {
 
 // Neues Item hinzufügen (inkl. completed)
 app.post('/add', (req, res) => {
-    db.run('INSERT INTO tasks (title, completed) VALUES (?, ?)', 
-        [req.body.title, req.body.completed || 0], 
+    db.run('INSERT INTO tasks (title, completed) VALUES (?, ?)',
+        [req.body.title, req.body.completed || 0],
         function () {
             res.json({ id: this.lastID, title: req.body.title, completed: req.body.completed || 0 });
         }
@@ -46,8 +46,8 @@ app.get('/liste_abrufen', (req, res) => {
 
 // Aufgabe als erledigt markieren
 app.put('/update/:id', (req, res) => {
-    db.run('UPDATE tasks SET completed = ? WHERE id = ?', 
-        [req.body.completed, req.params.id], 
+    db.run('UPDATE tasks SET completed = ? WHERE id = ?',
+        [req.body.completed, req.params.id],
         function (err) {
             if (err) {
                 res.status(400).json({ error: err.message });
