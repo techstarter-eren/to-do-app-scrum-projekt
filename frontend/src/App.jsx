@@ -3,7 +3,13 @@ import './App.css'
 
 function App() {
   const [tasks, setTasks] = useState([]);
-  const [title, setTitle] = useState("")
+  const [title, setTitle] = useState("");
+  const [darkMode, setDarkMode] = useState(false);
+
+  // Dark Mode initialisieren
+  useEffect(() => {
+    document.body.className = darkMode ? 'dark-mode' : '';
+  }, [darkMode]);
 
   useEffect(() => {
     fetch("http://localhost:3050/liste_abrufen")
@@ -12,52 +18,52 @@ function App() {
   }, []);
 
   const itemHinzufuegen = () => {
-
-    //Option 1 für Eingabecheck: falls Eingabefeld leer ist, mach nicht weiter
-
-    if (!title) {
-      return;
-    }
+    if (!title) return;
 
     fetch("http://localhost:3050/add", {
       method: "POST",
       headers: {"Content-Type": "application/json"},
       body: JSON.stringify({title}),
-    })      
-    // hier möchte ich, dass die Liste in der App auch aktualisiert wird
+    })
       .then((res) => res.json())
       .then((neueAufgabe) => setTasks([...tasks, neueAufgabe]))
-
     setTitle("");
   }
   
   const itemLoeschen = (id_nummer) => {
-    //console.log("Gedrückte Taste:" + id_nummer);
     fetch(`http://localhost:3050/delete/${id_nummer}`, {
       method: "DELETE",
     })
-
   }
 
-
   return (
-    <>
-      <h1>To-Do List</h1>
-      <input value={title}  onChange={(e)=>setTitle(e.target.value)} />
-      <button disabled={!title.trim()} onClick={itemHinzufuegen}>Add</button> {/* Option 2 für Eingabecheck: Button wird disabled bleiben wenn das Eingabefeld leer ist*/}
+    <div className={`container ${darkMode ? 'dark' : ''}`}>
+      <div className="header">
+        <h1>To-Do List</h1>
+        <button onClick={() => setDarkMode(!darkMode)} className="mode-toggle">
+          {darkMode ? '☀️' : '🌙'}
+        </button>
+      </div>
+      
+      <div className="input-group">
+        <input 
+          value={title}  
+          onChange={(e)=>setTitle(e.target.value)} 
+          placeholder="Neue Aufgabe..."
+        />
+        <button disabled={!title.trim()} onClick={itemHinzufuegen}>Add</button>
+      </div>
 
-      <ul>
-        {// hier gehört der Code, um die To-Do Liste dynamisch zu gestalten
-        tasks.map(({id, title, completed}) => (
+      <ul className="task-list">
+        {tasks.map(({id, title, completed}) => (
           <li key={id}>
-            <input type='checkbox' />
-            {title}
+            <input type='checkbox' checked={completed} />
+            <span className={completed ? 'completed' : ''}>{title}</span>
             <button onClick={() => itemLoeschen(id)}>X</button>
           </li>
-        ))
-        }
+        ))}
       </ul>
-    </>
+    </div>
   )
 }
 
