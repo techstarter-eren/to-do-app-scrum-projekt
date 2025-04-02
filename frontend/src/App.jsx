@@ -5,12 +5,12 @@ function App() {
   const [tasks, setTasks] = useState([]);
   const [title, setTitle] = useState("");
   const [darkMode, setDarkMode] = useState(false);
+  const [deadline, setDeadline] = useState("");
 
   // Dark Mode initialisieren
   useEffect(() => {
     document.body.className = darkMode ? 'dark-mode' : '';
   }, [darkMode]);
-  const [deadline, setDeadline] = useState("");
 
   // Aufgaben vom Server abrufen
   useEffect(() => {
@@ -79,17 +79,23 @@ function App() {
       <div className="input-group">
         <input 
           value={title}  
-          onChange={(e)=>setTitle(e.target.value)} 
+          onChange={(e) => setTitle(e.target.value)} 
           placeholder="Neue Aufgabe..."
+        />
+        <input
+          type="datetime-local"
+          value={deadline}
+          onChange={(e) => setDeadline(e.target.value)}
+          placeholder="Deadline festlegen"
         />
         <button disabled={!title.trim()} onClick={itemHinzufuegen}>Add</button>
       </div>
 
       <ul className="task-list">
-        {tasks.map(({id, title, completed}) => (
+        {tasks.map(({ id, title, completed, deadline }) => (
           <li key={id}>
             <input type='checkbox' checked={completed} onChange={() => taskStatusAktualisieren(id, completed)} />
-            <span className={completed ? 'completed' : ''}>{title}</span>
+            <span className={completed ? 'completed' : ''}>{title}</span> - <em>Deadline: {deadline ? new Date(deadline).toLocaleString() : "Keine"}</em>
             <button onClick={() => itemLoeschen(id)}>X</button>
           </li>
         ))}
