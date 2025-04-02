@@ -138,3 +138,9 @@ body.dark-mode {
   text-decoration: line-through;
   opacity: 0.7;
 }
+
+/* App.css */
+.task-text {
+  margin: 0 10px;
+  transition: color 0.3s ease;
+}
