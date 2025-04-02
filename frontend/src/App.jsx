@@ -4,6 +4,12 @@ import './App.css';
 function App() {
   const [tasks, setTasks] = useState([]);
   const [title, setTitle] = useState("");
+  const [darkMode, setDarkMode] = useState(false);
+
+  // Dark Mode initialisieren
+  useEffect(() => {
+    document.body.className = darkMode ? 'dark-mode' : '';
+  }, [darkMode]);
   const [deadline, setDeadline] = useState("");
 
   // Aufgaben vom Server abrufen
@@ -62,36 +68,33 @@ function App() {
   };
 
   return (
-    <>
-      <h1>To-Do List</h1>
-      <input
-        value={title}
-        onChange={(e) => setTitle(e.target.value)}
-        placeholder="Aufgabe eingeben"
-      />
-      <input
-        type="datetime-local"
-        value={deadline}
-        onChange={(e) => setDeadline(e.target.value)}
-      />
-      <button disabled={!title.trim()} onClick={itemHinzufuegen}>
-        Add
-      </button>
+    <div className={`container ${darkMode ? 'dark' : ''}`}>
+      <div className="header">
+        <h1>To-Do List</h1>
+        <button onClick={() => setDarkMode(!darkMode)} className="mode-toggle">
+          {darkMode ? '☀️' : '🌙'}
+        </button>
+      </div>
+      
+      <div className="input-group">
+        <input 
+          value={title}  
+          onChange={(e)=>setTitle(e.target.value)} 
+          placeholder="Neue Aufgabe..."
+        />
+        <button disabled={!title.trim()} onClick={itemHinzufuegen}>Add</button>
+      </div>
 
-      <ul>
-        {tasks.map(({ id, title, completed, deadline }) => (
-          <li key={id} className={completed ? "completed" : ""}>
-            <input
-              type="checkbox"
-              checked={completed}
-              onChange={() => taskStatusAktualisieren(id, completed)}
-            />
-            {title} - <em>Deadline: {deadline ? new Date(deadline).toLocaleString() : "Keine"}</em>
+      <ul className="task-list">
+        {tasks.map(({id, title, completed}) => (
+          <li key={id}>
+            <input type='checkbox' checked={completed} onChange={() => taskStatusAktualisieren(id, completed)} />
+            <span className={completed ? 'completed' : ''}>{title}</span>
             <button onClick={() => itemLoeschen(id)}>X</button>
           </li>
         ))}
       </ul>
-    </>
+    </div>
   );
 }
 
