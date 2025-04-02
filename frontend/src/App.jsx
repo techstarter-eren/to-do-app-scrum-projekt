@@ -103,7 +103,10 @@ function App() {
               }}
             >
               {title}
-            </span>
+            </span> 
+            <em style={{ marginLeft: '10px' }}>
+              Deadline: {deadline ? new Date(deadline).toLocaleString() : "Keine"}
+            </em>
             <button onClick={() => itemLoeschen(id)}>X</button>
           </li>
         ))}
