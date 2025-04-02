@@ -95,7 +95,15 @@ function App() {
         {tasks.map(({ id, title, completed, deadline }) => (
           <li key={id}>
             <input type='checkbox' checked={completed} onChange={() => taskStatusAktualisieren(id, completed)} />
-            <span className={completed ? 'completed' : ''}>{title}</span>
+            <span 
+              className={`task-text ${completed ? 'completed' : 'pending'}`}
+              style={{
+                color: completed ? '#006400' : '#8B0000', // Dunkelgrün für erledigt, Dunkelrot für ausstehend
+                fontWeight: 'bold'
+              }}
+            >
+              {title}
+            </span>
             <button onClick={() => itemLoeschen(id)}>X</button>
           </li>
         ))}
