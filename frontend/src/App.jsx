@@ -8,7 +8,7 @@ function App() {
     useEffect(() => {
         fetch("http://localhost:3050/liste_abrufen")
             .then((res) => res.json())
-            .then(setTasks);
+            .then(data => setTasks(data.map(task => ({ ...task, isEditingDeadline: false, deadlineInput: task.deadline || '' }))));
     }, []);
 
     const itemHinzufuegen = () => {
@@ -22,7 +22,7 @@ function App() {
             body: JSON.stringify({ title, completed: false }),
         })
             .then((res) => res.json())
-            .then((neueAufgabe) => setTasks([...tasks, neueAufgabe]));
+            .then((neueAufgabe) => setTasks([...tasks, { ...neueAufgabe, isEditingDeadline: false, deadlineInput: '' }]));
 
         setTitle("");
     };
@@ -47,6 +47,36 @@ function App() {
         });
     };
 
+    const handleDeadlineInputChange = (id, event) => {
+        setTasks(tasks.map(task =>
+            task.id === id ? { ...task, deadlineInput: event.target.value } : task
+        ));
+    };
+
+    const handleSetDeadline = (id) => {
+        const taskToUpdate = tasks.find(task => task.id === id);
+        if (taskToUpdate) {
+            fetch(`http://localhost:3050/set-deadline/${id}`, {
+                method: "PUT",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ deadline: taskToUpdate.deadlineInput }),
+            })
+                .then(res => res.json())
+                .then(data => {
+                    setTasks(tasks.map(task =>
+                        task.id === id ? { ...task, deadline: data.deadline, isEditingDeadline: false } : task
+                    ));
+                })
+                .catch(error => console.error('Fehler beim Setzen der Deadline:', error));
+        }
+    };
+
+    const toggleEditDeadline = (id) => {
+        setTasks(tasks.map(task =>
+            task.id === id ? { ...task, isEditingDeadline: !task.isEditingDeadline, deadlineInput: task.deadline || '' } : task
+        ));
+    };
+
     return (
         <>
             <h1>To-Do List</h1>
@@ -54,7 +84,7 @@ function App() {
             <button disabled={!title.trim()} onClick={itemHinzufuegen}>Add</button>
 
             <ul>
-                {tasks.map(({ id, title, completed }) => (
+                {tasks.map(({ id, title, completed, deadline, isEditingDeadline, deadlineInput }) => (
                     <li key={id} className={completed ? "completed" : ""}>
                         <input
                             type='checkbox'
@@ -62,6 +92,22 @@ function App() {
                             onChange={() => taskStatusAktualisieren(id, completed)}
                         />
                         {title}
+                        {!isEditingDeadline ? (
+                            <>
+                                {deadline && <span className="deadline">Deadline: {deadline}</span>}
+                                <button onClick={() => toggleEditDeadline(id)}>Deadline setzen</button>
+                            </>
+                        ) : (
+                            <div>
+                                <input
+                                    type="datetime-local"
+                                    value={deadlineInput}
+                                    onChange={(e) => handleDeadlineInputChange(id, e)}
+                                />
+                                <button onClick={() => handleSetDeadline(id)}>Speichern</button>
+                                <button onClick={() => toggleEditDeadline(id)}>Abbrechen</button>
+                            </div>
+                        )}
                         <button onClick={() => itemLoeschen(id)}>X</button>
                     </li>
                 ))}
