@@ -7,7 +7,6 @@ function App() {
   const [darkMode, setDarkMode] = useState(false);
   const [deadline, setDeadline] = useState("");
 
-  // Dark Mode initialisieren
   useEffect(() => {
     document.body.className = darkMode ? 'dark-mode' : '';
   }, [darkMode]);
@@ -67,6 +66,23 @@ function App() {
       .catch((error) => console.error("Fehler beim Aktualisieren des Status:", error));
   };
 
+  // Notiz aktualisieren
+  const notizAktualisieren = (id_nummer, note) => {
+    fetch(`http://localhost:3050/update_note/${id_nummer}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ note }),
+    })
+      .then(() => {
+        setTasks((prevTasks) =>
+          prevTasks.map(task =>
+            task.id === id_nummer ? { ...task, note } : task
+          )
+        );
+      })
+      .catch((error) => console.error("Fehler beim Aktualisieren der Notiz:", error));
+  };
+
   return (
     <div className={`container ${darkMode ? 'dark' : ''}`}>
       <div className="header">
@@ -92,13 +108,13 @@ function App() {
       </div>
 
       <ul className="task-list">
-        {tasks.map(({ id, title, completed, deadline }) => (
+        {tasks.map(({ id, title, completed, deadline, note }) => (
           <li key={id}>
             <input type='checkbox' checked={completed} onChange={() => taskStatusAktualisieren(id, completed)} />
             <span 
               className={`task-text ${completed ? 'completed' : 'pending'}`}
               style={{
-                color: completed ? '#006400' : '#8B0000', // Dunkelgrün für erledigt, Dunkelrot für ausstehend
+                color: completed ? '#006400' : '#8B0000',
                 fontWeight: 'bold'
               }}
             >
@@ -107,6 +123,12 @@ function App() {
             <em style={{ marginLeft: '10px' }}>
               Deadline: {deadline ? new Date(deadline).toLocaleString() : "Keine"}
             </em>
+            <textarea 
+              value={note || ""}
+              placeholder="Notiz hinzufügen..."
+              onChange={(e) => notizAktualisieren(id, e.target.value)}
+              style={{ width: "100%", minHeight: "40px", marginTop: "8px" }}
+            />
             <button onClick={() => itemLoeschen(id)}>X</button>
           </li>
         ))}

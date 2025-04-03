@@ -7,6 +7,8 @@ const app = express();
 
 // Verbindung zur Datenbank
 const db = new sqlite3.Database('./tasks.db');
+
+// Spalten hinzufügen, falls sie noch nicht existieren
 db.run('ALTER TABLE tasks ADD COLUMN deadline TEXT', (err) => {
     if (err) {
         console.log("Die Spalte 'deadline' existiert möglicherweise bereits:", err.message);
@@ -15,14 +17,21 @@ db.run('ALTER TABLE tasks ADD COLUMN deadline TEXT', (err) => {
     }
 });
 
+db.run('ALTER TABLE tasks ADD COLUMN note TEXT', (err) => {
+    if (err) {
+        console.log("Die Spalte 'note' existiert möglicherweise bereits:", err.message);
+    } else {
+        console.log("Spalte 'note' erfolgreich hinzugefügt.");
+    }
+});
+
 app.use(cors());
 app.use(bodyParser.json());
 
 // Tabelle erstellen, falls sie nicht existiert
-db.run('CREATE TABLE IF NOT EXISTS tasks (id INTEGER PRIMARY KEY AUTOINCREMENT, title TEXT, completed BOOLEAN DEFAULT 0)');
+db.run('CREATE TABLE IF NOT EXISTS tasks (id INTEGER PRIMARY KEY AUTOINCREMENT, title TEXT, completed BOOLEAN DEFAULT 0, deadline TEXT, note TEXT)');
 
 // Requests und Responses
-
 app.get('/', (req, res) => {
     res.send('genau');
 });
@@ -35,12 +44,12 @@ app.get('/ralf', (req, res) => {
     res.send('vielen Dank Ralf');
 });
 
-// Neues Item hinzufügen (inkl. completed und deadline)
+// Neues Item hinzufügen (inkl. completed, deadline und note)
 app.post('/add', (req, res) => {
-    db.run('INSERT INTO tasks (title, completed, deadline) VALUES (?, ?, ?)', 
-        [req.body.title, req.body.completed || 0, req.body.deadline || null], 
+    db.run('INSERT INTO tasks (title, completed, deadline, note) VALUES (?, ?, ?, ?)', 
+        [req.body.title, req.body.completed || 0, req.body.deadline || null, null], 
         function () {
-            res.json({ id: this.lastID, title: req.body.title, completed: req.body.completed || 0, deadline: req.body.deadline || null });
+            res.json({ id: this.lastID, title: req.body.title, completed: req.body.completed || 0, deadline: req.body.deadline || null, note: null });
         }
     );
 });
@@ -80,6 +89,20 @@ app.put('/update_deadline/:id', (req, res) => {
                 return;
             }
             res.json({ message: 'Deadline updated', changes: this.changes });
+        }
+    );
+});
+
+// Notiz aktualisieren
+app.put('/update_note/:id', (req, res) => {
+    db.run('UPDATE tasks SET note = ? WHERE id = ?', 
+        [req.body.note, req.params.id], 
+        function (err) {
+            if (err) {
+                res.status(400).json({ error: err.message });
+                return;
+            }
+            res.json({ message: 'Notiz erfolgreich aktualisiert.', changes: this.changes });
         }
     );
 });
