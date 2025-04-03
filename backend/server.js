@@ -9,28 +9,43 @@ const app = express();
 const db = new sqlite3.Database('./tasks.db');
 
 // Tabelle erstellen, falls sie nicht existiert
-db.run('CREATE TABLE IF NOT EXISTS tasks (id INTEGER PRIMARY KEY AUTOINCREMENT, title TEXT, completed INTEGER DEFAULT 0, deadline TEXT)', (err) => {
-     if (err) {
-         console.error('Error creating tasks table:', err.message); // Fehlermeldung beim Erstellen der 'tasks'-Tabelle.
-     } else {
-     console.log('Tasks table created successfully (or already exists).'); // Meldung, dass die 'tasks'-Tabelle erfolgreich erstellt wurde (oder bereits existierte).
+db.run('CREATE TABLE IF NOT EXISTS tasks (id INTEGER PRIMARY KEY AUTOINCREMENT, title TEXT, completed INTEGER DEFAULT 0, deadline TEXT, note TEXT)', (err) => {
+    if (err) {
+        console.error('Error creating tasks table:', err.message);
+    } else {
+        console.log('Tasks table created successfully (or already exists).');
+    }
+});
+
+// Add deadline column to tasks table if it doesn't exist
+db.run('ALTER TABLE tasks ADD COLUMN deadline TEXT', (err) => {
+    if (err) {
+        if (err.message.includes('duplicate column name')) {
+            console.log('The deadline column already exists.');
+        } else {
+            console.error('Error adding deadline column:', err.message);
         }
-    });
-    
-    // Add deadline column to tasks table if it doesn't exist
-    db.run('ALTER TABLE tasks ADD COLUMN deadline TEXT', (err) => {
-         if (err) {
-         if (err.message.includes('duplicate column name')) {
-         console.log('The deadline column already exists.'); // Meldung, dass die 'deadline'-Spalte bereits existiert.
-         } else {
-         console.error('Error adding deadline column:', err.message); // Fehlermeldung beim Hinzufügen der 'deadline'-Spalte.
-     }
-         } else {
-         console.log('The deadline column was successfully added to the tasks table.'); // Meldung, dass die 'deadline'-Spalte erfolgreich zur 'tasks'-Tabelle hinzugefügt wurde.
-     }
-    });
+    } else {
+        console.log('The deadline column was successfully added to the tasks table.');
+    }
+});
+
+// Add note column to tasks table if it doesn't exist
+db.run('ALTER TABLE tasks ADD COLUMN note TEXT', (err) => {
+    if (err) {
+        if (err.message.includes('duplicate column name')) {
+            console.log('The note column already exists.');
+        } else {
+            console.error('Error adding note column:', err.message);
+        }
+    } else {
+        console.log('The note column was successfully added to the tasks table.');
+    }
+});
+
 app.use(cors());
 app.use(bodyParser.json());
+
 // Anfragen und Antworten
 
 app.get('/', (req, res) => {
@@ -50,7 +65,7 @@ app.post('/add', (req, res) => {
     db.run('INSERT INTO tasks (title, completed) VALUES (?, ?)',
         [req.body.title, req.body.completed || 0],
         function () {
-            res.json({ id: this.lastID, title: req.body.title, completed: req.body.completed || 0, deadline: null });
+            res.json({ id: this.lastID, title: req.body.title, completed: req.body.completed || 0, deadline: null, note: null });
         }
     );
 });
@@ -94,6 +109,20 @@ app.put('/set-deadline/:id', (req, res) => {
             return res.status(500).json({ error: 'Fehler beim Aktualisieren der Deadline' });
         }
         res.json({ message: `Deadline für Aufgabe mit ID ${taskId} gesetzt`, deadline: deadline });
+    });
+});
+
+// Notiz für eine Aufgabe setzen
+app.put('/set-note/:id', (req, res) => {
+    const taskId = req.params.id;
+    const note = req.body.note;
+
+    db.run('UPDATE tasks SET note = ? WHERE id = ?', [note, taskId], function (err) {
+        if (err) {
+            console.error(err.message);
+            return res.status(500).json({ error: 'Fehler beim Aktualisieren der Notiz' });
+        }
+        res.json({ message: `Notiz für Aufgabe mit ID ${taskId} gesetzt`, note: note });
     });
 });
 

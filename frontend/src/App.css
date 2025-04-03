@@ -1,15 +1,46 @@
 #root {
-  max-width: 1280px;
+  max-width: 1880px;
   margin: 0 auto;
   padding: 2rem;
   text-align: center;
 }
+body {
+  background-color: #ecdede;
+  color: #333;
+}
 
+h1 {
+  color: #007bff;
+}
+
+input[type="text"],
+textarea {
+    border: 1px solid #ccc;
+    background-color: #fff;
+    color: #333;
+}
+
+/* Dunkles Farbschema */
+.dark-mode body {
+  background-color: #302d2d;
+  color: #d4d4d4;
+}
 .completed {
   text-decoration: line-through;
   color: #888; /* Optionale graue Farbe für erledigte Aufgaben */
 }
 
+ul li {
+  border-bottom: 1px solid #eee;
+  background-color: #fff;
+
+  ul li.completed {
+    color: #888;
+}
+
+.deadline {
+    color: #555;
+}
 .logo {
   height: 6em;
   padding: 1.5em;
@@ -37,9 +68,44 @@
     animation: logo-spin infinite 20s linear;
   }
 }
+/* Dunkles Farbschema */
+.dark-mode body {
+  background-color: #1e1e1e;
+  color: #d4d4d4;
+}
 
-.card {
-  padding: 2em;
+.dark-mode h1 {
+  color: #6dd5ed;
+}
+
+.dark-mode input[type="text"],
+.dark-mode textarea {
+  border: 1px solid #555;
+  background-color: #333;
+  color: #d4d4d4;
+}
+
+.dark-mode button {
+  background-color: #6dd5ed;
+  color: #1e1e1e;
+}
+
+.dark-mode button:disabled {
+  background-color: #555;
+  color: #999;
+}
+
+.dark-mode ul li {
+  border-bottom: 1px solid #555;
+  background-color: #333;
+}
+
+.dark-mode ul li.completed {
+  color: #999;
+}
+
+.dark-mode .deadline {
+  color: #aaa;
 }
 
 .read-the-docs {

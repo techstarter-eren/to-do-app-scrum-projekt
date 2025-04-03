@@ -4,12 +4,18 @@ import './App.css';
 function App() {
     const [tasks, setTasks] = useState([]);
     const [title, setTitle] = useState("");
+    const [theme, setTheme] = useState('light'); // Standardmäßig helles Theme
 
     useEffect(() => {
         fetch("http://localhost:3050/liste_abrufen")
             .then((res) => res.json())
-            .then(data => setTasks(data.map(task => ({ ...task, isEditingDeadline: false, deadlineInput: task.deadline || '' }))));
-    }, []);
+            .then(data => setTasks(data.map(task => ({ ...task, isEditingDeadline: false, deadlineInput: task.deadline || '', isEditingNote: false, noteInput: task.note || '' }))));
+        document.body.className = theme === 'dark' ? 'dark-mode' : ''; // CSS-Klasse beim Mounten setzen
+    }, [theme]); // Abhängigkeit von theme, damit die Klasse bei Theme-Änderung aktualisiert wird
+
+    const toggleTheme = () => {
+        setTheme(prevTheme => prevTheme === 'light' ? 'dark' : 'light');
+    };
 
     const itemHinzufuegen = () => {
         if (!title.trim()) {
@@ -22,7 +28,7 @@ function App() {
             body: JSON.stringify({ title, completed: false }),
         })
             .then((res) => res.json())
-            .then((neueAufgabe) => setTasks([...tasks, { ...neueAufgabe, isEditingDeadline: false, deadlineInput: '' }]));
+            .then((neueAufgabe) => setTasks([...tasks, { ...neueAufgabe, isEditingDeadline: false, deadlineInput: '', isEditingNote: false, noteInput: '' }]));
 
         setTitle("");
     };
@@ -77,14 +83,47 @@ function App() {
         ));
     };
 
+    const handleNoteInputChange = (id, event) => {
+        setTasks(tasks.map(task =>
+            task.id === id ? { ...task, noteInput: event.target.value } : task
+        ));
+    };
+
+    const handleSetNote = (id) => {
+        const taskToUpdate = tasks.find(task => task.id === id);
+        if (taskToUpdate) {
+            fetch(`http://localhost:3050/set-note/${id}`, {
+                method: "PUT",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ note: taskToUpdate.noteInput }),
+            })
+                .then(res => res.json())
+                .then(data => {
+                    setTasks(tasks.map(task =>
+                        task.id === id ? { ...task, note: data.note, isEditingNote: false } : task
+                    ));
+                })
+                .catch(error => console.error('Fehler beim Setzen der Notiz:', error));
+        }
+    };
+
+    const toggleEditNote = (id) => {
+        setTasks(tasks.map(task =>
+            task.id === id ? { ...task, isEditingNote: !task.isEditingNote, noteInput: task.note || '' } : task
+        ));
+    };
+
     return (
         <>
+            <button onClick={toggleTheme}>
+                {theme === 'light' ? 'Zum dunklen Modus wechseln' : 'Zum hellen Modus wechseln'}
+            </button>
             <h1>To-Do List</h1>
             <input value={title} onChange={(e) => setTitle(e.target.value)} />
             <button disabled={!title.trim()} onClick={itemHinzufuegen}>Add</button>
 
             <ul>
-                {tasks.map(({ id, title, completed, deadline, isEditingDeadline, deadlineInput }) => (
+                {tasks.map(({ id, title, completed, deadline, isEditingDeadline, deadlineInput, note, isEditingNote, noteInput }) => (
                     <li key={id} className={completed ? "completed" : ""}>
                         <input
                             type='checkbox'
@@ -106,6 +145,22 @@ function App() {
                                 />
                                 <button onClick={() => handleSetDeadline(id)}>Speichern</button>
                                 <button onClick={() => toggleEditDeadline(id)}>Abbrechen</button>
+                            </div>
+                        )}
+                        {!isEditingNote ? (
+                            <>
+                                {note && <div className="note">Notiz: {note}</div>}
+                                <button onClick={() => toggleEditNote(id)}>Notiz hinzufügen</button>
+                            </>
+                        ) : (
+                            <div className="note-input-container">
+                                <textarea
+                                    value={noteInput}
+                                    onChange={(e) => handleNoteInputChange(id, e)}
+                                    placeholder="Notiz eingeben..."
+                                />
+                                <button onClick={() => handleSetNote(id)}>Speichern</button>
+                                <button onClick={() => toggleEditNote(id)}>Abbrechen</button>
                             </div>
                         )}
                         <button onClick={() => itemLoeschen(id)}>X</button>
