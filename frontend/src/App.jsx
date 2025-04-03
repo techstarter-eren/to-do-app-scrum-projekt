@@ -10,11 +10,14 @@ function App() {
         fetch("http://localhost:3050/liste_abrufen")
             .then((res) => res.json())
             .then(data => setTasks(data.map(task => ({ ...task, isEditingDeadline: false, deadlineInput: task.deadline || '', isEditingNote: false, noteInput: task.note || '' }))));
-        document.body.className = theme === 'dark' ? 'dark-mode' : ''; // CSS-Klasse beim Mounten setzen
-    }, [theme]); // Abhängigkeit von theme, damit die Klasse bei Theme-Änderung aktualisiert wird
-
+        document.body.className = theme === 'dark' ? 'dark-mode' : '';
+        console.log("useEffect triggered, theme is:", theme);
+    }, [theme]);
+    
     const toggleTheme = () => {
-        setTheme(prevTheme => prevTheme === 'light' ? 'dark' : 'light');
+        const newTheme = theme === 'light' ? 'dark' : 'light';
+        setTheme(newTheme);
+        console.log("Theme toggled:", newTheme);
     };
 
     const itemHinzufuegen = () => {
@@ -123,50 +126,53 @@ function App() {
             <button disabled={!title.trim()} onClick={itemHinzufuegen}>Add</button>
 
             <ul>
-                {tasks.map(({ id, title, completed, deadline, isEditingDeadline, deadlineInput, note, isEditingNote, noteInput }) => (
-                    <li key={id} className={completed ? "completed" : ""}>
-                        <input
-                            type='checkbox'
-                            checked={completed}
-                            onChange={() => taskStatusAktualisieren(id, completed)}
-                        />
-                        {title}
-                        {!isEditingDeadline ? (
-                            <>
-                                {deadline && <span className="deadline">Deadline: {deadline}</span>}
-                                <button onClick={() => toggleEditDeadline(id)}>Deadline setzen</button>
-                            </>
-                        ) : (
-                            <div>
-                                <input
-                                    type="datetime-local"
-                                    value={deadlineInput}
-                                    onChange={(e) => handleDeadlineInputChange(id, e)}
-                                />
-                                <button onClick={() => handleSetDeadline(id)}>Speichern</button>
-                                <button onClick={() => toggleEditDeadline(id)}>Abbrechen</button>
-                            </div>
-                        )}
-                        {!isEditingNote ? (
-                            <>
-                                {note && <div className="note">Notiz: {note}</div>}
-                                <button onClick={() => toggleEditNote(id)}>Notiz hinzufügen</button>
-                            </>
-                        ) : (
-                            <div className="note-input-container">
-                                <textarea
-                                    value={noteInput}
-                                    onChange={(e) => handleNoteInputChange(id, e)}
-                                    placeholder="Notiz eingeben..."
-                                />
-                                <button onClick={() => handleSetNote(id)}>Speichern</button>
-                                <button onClick={() => toggleEditNote(id)}>Abbrechen</button>
-                            </div>
-                        )}
-                        <button onClick={() => itemLoeschen(id)}>X</button>
-                    </li>
-                ))}
-            </ul>
+    {tasks.map(({ id, title, completed, deadline, isEditingDeadline, deadlineInput, note, isEditingNote, noteInput }) => (
+        <li
+            key={id}
+            className={`${completed ? "completed completed-colored" : ""} ${theme === 'dark' ? (completed ? "dark-mode dark-mode-completed-colored completed" : "dark-mode") : ""}`}
+        >
+            <input
+                type='checkbox'
+                checked={completed}
+                onChange={() => taskStatusAktualisieren(id, completed)}
+            />
+            {title}
+            {!isEditingDeadline ? (
+                <>
+                    {deadline && <span className="deadline">Deadline: {deadline}</span>}
+                    <button onClick={() => toggleEditDeadline(id)}>Deadline setzen</button>
+                </>
+            ) : (
+                <div>
+                    <input
+                        type="datetime-local"
+                        value={deadlineInput}
+                        onChange={(e) => handleDeadlineInputChange(id, e)}
+                    />
+                    <button onClick={() => handleSetDeadline(id)}>Speichern</button>
+                    <button onClick={() => toggleEditDeadline(id)}>Abbrechen</button>
+                </div>
+            )}
+            {!isEditingNote ? (
+                <>
+                    {note && <div className="note">Notiz: {note}</div>}
+                    <button onClick={() => toggleEditNote(id)}>Notiz hinzufügen</button>
+                </>
+            ) : (
+                <div className="note-input-container">
+                    <textarea
+                        value={noteInput}
+                        onChange={(e) => handleNoteInputChange(id, e)}
+                        placeholder="Notiz eingeben..."
+                    />
+                    <button onClick={() => handleSetNote(id)}>Speichern</button>
+                    <button onClick={() => toggleEditNote(id)}>Abbrechen</button>
+                </div>
+            )}
+            <button onClick={() => itemLoeschen(id)}>X</button>
+        </li>
+    ))}
+</ul>
         </>
     );
 }
