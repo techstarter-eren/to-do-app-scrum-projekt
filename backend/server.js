@@ -9,7 +9,7 @@ const app = express();
 const db = new sqlite3.Database('./tasks.db');
 
 // Tabelle erstellen, falls sie nicht existiert
-db.run('CREATE TABLE IF NOT EXISTS tasks (id INTEGER PRIMARY KEY AUTOINCREMENT, title TEXT, completed INTEGER DEFAULT 0, deadline TEXT, note TEXT)', (err) => {
+db.run('CREATE TABLE IF NOT EXISTS tasks (id INTEGER PRIMARY KEY AUTOINCREMENT, title TEXT, completed INTEGER DEFAULT 0, deadline TEXT, note TEXT, recurring INTEGER DEFAULT 0, recurrence_type TEXT, recurrence_interval INTEGER, recurrence_start_date TEXT, recurrence_end_date TEXT)', (err) => {
     if (err) {
         console.error('Error creating tasks table:', err.message);
     } else {
@@ -43,6 +43,48 @@ db.run('ALTER TABLE tasks ADD COLUMN note TEXT', (err) => {
     }
 });
 
+// Add recurring columns to tasks table if they don't exist
+db.run('ALTER TABLE tasks ADD COLUMN recurring INTEGER DEFAULT 0', (err) => {
+    if (err && !err.message.includes('duplicate column name')) {
+        console.error('Error adding recurring column:', err.message);
+    } else if (!err) {
+        console.log('The recurring column was successfully added to the tasks table.');
+    }
+});
+
+db.run('ALTER TABLE tasks ADD COLUMN recurrence_type TEXT', (err) => {
+    if (err && !err.message.includes('duplicate column name')) {
+        console.error('Error adding recurrence_type column:', err.message);
+    } else if (!err) {
+        console.log('The recurrence_type column was successfully added to the tasks table.');
+    }
+});
+
+db.run('ALTER TABLE tasks ADD COLUMN recurrence_interval INTEGER', (err) => {
+    if (err && !err.message.includes('duplicate column name')) {
+        console.error('Error adding recurrence_interval column:', err.message);
+    } else if (!err) {
+        console.log('The recurrence_interval column was successfully added to the tasks table.');
+    }
+});
+
+db.run('ALTER TABLE tasks ADD COLUMN recurrence_start_date TEXT', (err) => {
+    if (err && !err.message.includes('duplicate column name')) {
+        console.error('Error adding recurrence_start_date column:', err.message);
+    } else if (!err) {
+        console.log('The recurrence_start_date column was successfully added to the tasks table.');
+    }
+});
+
+db.run('ALTER TABLE tasks ADD COLUMN recurrence_end_date TEXT', (err) => {
+    if (err && !err.message.includes('duplicate column name')) {
+        console.error('Error adding recurrence_end_date column:', err.message);
+    } else if (!err) {
+        console.log('The recurrence_end_date column was successfully added to the tasks table.');
+    }
+});
+
+
 app.use(cors());
 app.use(bodyParser.json());
 
@@ -60,12 +102,14 @@ app.get('/ralf', (req, res) => {
     res.send('vielen Dank Ralf');
 });
 
-// Neues Element hinzufügen (inkl. erledigt)
+// Neues Element hinzufügen (inkl. erledigt und Wiederholung)
 app.post('/add', (req, res) => {
-    db.run('INSERT INTO tasks (title, completed) VALUES (?, ?)',
-        [req.body.title, req.body.completed || 0],
+    const { title, completed, recurring, recurrence_type, recurrence_interval, recurrence_start_date, recurrence_end_date } = req.body;
+    db.run(
+        'INSERT INTO tasks (title, completed, recurring, recurrence_type, recurrence_interval, recurrence_start_date, recurrence_end_date) VALUES (?, ?, ?, ?, ?, ?, ?)',
+        [title, completed || 0, recurring || 0, recurrence_type, recurrence_interval, recurrence_start_date, recurrence_end_date],
         function () {
-            res.json({ id: this.lastID, title: req.body.title, completed: req.body.completed || 0, deadline: null, note: null });
+            res.json({ id: this.lastID, title, completed: completed || 0, deadline: null, note: null, recurring: recurring || 0, recurrence_type, recurrence_interval, recurrence_start_date, recurrence_end_date });
         }
     );
 });

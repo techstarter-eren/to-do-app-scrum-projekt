@@ -4,6 +4,7 @@
   padding: 2rem;
   text-align: center;
 }
+
 body {
   background-color: #ecdede;
   color: #333;
@@ -15,112 +16,68 @@ h1 {
 
 input[type="text"],
 textarea {
-    border: 1px solid #ccc;
-    background-color: #fff;
-    color: #333;
+  border: 1px solid #ccc;
+  background-color: #fff;
+  color: #333;
 }
 
-/* Dunkles Farbschema */
-.dark-mode body {
-  background-color: #302d2d;
-  color: #d4d4d4;
-}
 .completed {
   text-decoration: line-through;
   color: #888;
 }
+
 .completed-colored {
-  color: green;  
-}
-body {
-  background-color: #ecdede;
+  color: green;
 }
 
 /* Farbe für NICHT erledigte Aufgaben */
 ul li {
   border-bottom: 1px solid #eee;
-  background-color: #fff; 
-  color: green; 
+  background-color: #fff;
+  color: green;
   list-style: none;
 }
 
 /* Farbe und Stil für ERLEDIGTE Aufgaben */
 .completed {
   text-decoration: line-through;
-  color: red; 
+  color: red;
 }
 
 .deadline {
   color: #555;
 }
 
-/* Dunkles Farbschema */
-.dark-mode body {
-  background-color: #1e1e1e; 
-  color: #d4d4d4; 
-}
-
-/* Farbe für NICHT erledigte Aufgaben im dunklen Modus */
-.dark-mode ul li {
-  border-bottom: 1px solid #555; 
-  background-color: #333;
-  color: lightgreen; 
-}
-
-/* Farbe und Stil für ERLEDIGTE Aufgaben im dunklen Modus */
-.dark-mode .completed {
-  color: #ff6961; 
-}
-
-.dark-mode .deadline {
-  color: #aaa;
-}
-/* Dunkles Farbschema  */
-.dark-mode .completed {
-  color: #999; 
-}
-
-.dark-mode .completed-colored {
-  color: lightgreen; 
-}
-ul li {
-  border-bottom: 1px solid #eee;
-  background-color: #fff;
-}
-  ul li.completed {
-    color: #888;
-}
-
-.deadline {
-    color: #555;
-}
 .logo {
   height: 6em;
   padding: 1.5em;
   will-change: filter;
   transition: filter 300ms;
 }
+
 .logo:hover {
   filter: drop-shadow(0 0 2em #646cffaa);
 }
+
 .logo.react:hover {
   filter: drop-shadow(0 0 2em #61dafbaa);
 }
 
 @keyframes logo-spin {
   from {
-    transform: rotate(0deg);
+      transform: rotate(0deg);
   }
   to {
-    transform: rotate(360deg);
+      transform: rotate(360deg);
   }
 }
 
 @media (prefers-reduced-motion: no-preference) {
   a:nth-of-type(2) .logo {
-    animation: logo-spin infinite 20s linear;
+      animation: logo-spin infinite 20s linear;
   }
 }
+
 /* Dunkles Farbschema */
 .dark-mode body {
   background-color: #1e1e1e;
@@ -140,7 +97,7 @@ ul li {
 
 .dark-mode button {
   background-color: #6dd5ed;
-  color: #705555;
+  color: #705555; /* Deine Farbe für Button im Dark Mode */
 }
 
 .dark-mode button:disabled {
@@ -150,21 +107,65 @@ ul li {
 
 .dark-mode ul li {
   border-bottom: 1px solid #555;
-  background-color: #525151;
+  background-color: #525151; /* Deine Farbe für ul li im Dark Mode */
+  color: lightgreen; /* Farbe für NICHT erledigte Aufgaben im dunklen Modus */
+}
+
+.dark-mode .completed {
+  color: #ff6961; /* Farbe für erledigte Aufgaben im dunklen Modus (helleres Rot) */
 }
 
 .dark-mode ul li.completed {
-  color: #e2d1d1;
+  color: #e2d1d1; /* Deine Farbe für erledigte ul li im Dark Mode */
 }
 
 .dark-mode .deadline {
-  color: #838383;
+  color: #838383; /* Deine Farbe für Deadline im Dark Mode */
 }
 
 .read-the-docs {
   color: #888;
 }
 
-ul{
-  list-style:none;
+ul {
+  list-style: none;
+}
+
+.recurring-options {
+  margin-top: 10px;
+  padding: 10px;
+  border: 1px solid #ccc;
+  border-radius: 5px;
+  background-color: #f9f9f9;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.recurring-options label {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.recurring-options input[type="number"],
+.recurring-options input[type="date"],
+.recurring-options select {
+  padding: 5px;
+  border: 1px solid #ddd;
+  border-radius: 3px;
+}
+
+.dark-mode .recurring-options {
+  border-color: #555;
+  background-color: #333;
+  color: #d4d4d4;
+}
+
+.dark-mode .recurring-options input[type="number"],
+.dark-mode .recurring-options input[type="date"],
+.dark-mode .recurring-options select {
+  border-color: #777;
+  background-color: #444;
+  color: #d4d4d4;
 }

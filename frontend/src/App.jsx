@@ -5,6 +5,11 @@ function App() {
     const [tasks, setTasks] = useState([]);
     const [title, setTitle] = useState("");
     const [theme, setTheme] = useState('light'); // Standardmäßig helles Theme
+    const [isRecurring, setIsRecurring] = useState(false);
+    const [recurrenceType, setRecurrenceType] = useState('daily'); // 'daily', 'weekly', 'monthly'
+    const [recurrenceInterval, setRecurrenceInterval] = useState(1);
+    const [recurrenceStartDate, setRecurrenceStartDate] = useState('');
+    const [recurrenceEndDate, setRecurrenceEndDate] = useState('');
 
     useEffect(() => {
         fetch("http://localhost:3050/liste_abrufen")
@@ -13,11 +18,31 @@ function App() {
         document.body.className = theme === 'dark' ? 'dark-mode' : '';
         console.log("useEffect triggered, theme is:", theme);
     }, [theme]);
-    
+
     const toggleTheme = () => {
         const newTheme = theme === 'light' ? 'dark' : 'light';
         setTheme(newTheme);
         console.log("Theme toggled:", newTheme);
+    };
+
+    const handleIsRecurringChange = (event) => {
+        setIsRecurring(event.target.checked);
+    };
+
+    const handleRecurrenceTypeChange = (event) => {
+        setRecurrenceType(event.target.value);
+    };
+
+    const handleRecurrenceIntervalChange = (event) => {
+        setRecurrenceInterval(parseInt(event.target.value, 10));
+    };
+
+    const handleRecurrenceStartDateChange = (event) => {
+        setRecurrenceStartDate(event.target.value);
+    };
+
+    const handleRecurrenceEndDateChange = (event) => {
+        setRecurrenceEndDate(event.target.value);
     };
 
     const itemHinzufuegen = () => {
@@ -25,15 +50,30 @@ function App() {
             return;
         }
 
+        const newTaskData = {
+            title,
+            completed: false,
+            recurring: isRecurring ? 1 : 0,
+            recurrence_type: isRecurring ? recurrenceType : null,
+            recurrence_interval: isRecurring ? parseInt(recurrenceInterval, 10) : null,
+            recurrence_start_date: isRecurring ? recurrenceStartDate : null,
+            recurrence_end_date: isRecurring ? recurrenceEndDate : null,
+        };
+
         fetch("http://localhost:3050/add", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ title, completed: false }),
+            body: JSON.stringify(newTaskData),
         })
             .then((res) => res.json())
             .then((neueAufgabe) => setTasks([...tasks, { ...neueAufgabe, isEditingDeadline: false, deadlineInput: '', isEditingNote: false, noteInput: '' }]));
 
         setTitle("");
+        setIsRecurring(false);
+        setRecurrenceType('daily');
+        setRecurrenceInterval(1);
+        setRecurrenceStartDate('');
+        setRecurrenceEndDate('');
     };
 
     const itemLoeschen = (id_nummer) => {
@@ -123,56 +163,103 @@ function App() {
             </button>
             <h1>To-Do List</h1>
             <input value={title} onChange={(e) => setTitle(e.target.value)} />
+            <label>
+                <input
+                    type="checkbox"
+                    checked={isRecurring}
+                    onChange={handleIsRecurringChange}
+                />
+                Wiederkehrende Aufgabe
+            </label>
+
+            {isRecurring && (
+                <div className="recurring-options">
+                    <label>
+                        Wiederholungstyp:
+                        <select value={recurrenceType} onChange={handleRecurrenceTypeChange}>
+                            <option value="daily">Täglich</option>
+                            <option value="weekly">Wöchentlich</option>
+                            <option value="monthly">Monatlich</option>
+                        </select>
+                    </label>
+                    <label>
+                        Intervall:
+                        <input
+                            type="number"
+                            value={recurrenceInterval}
+                            onChange={handleRecurrenceIntervalChange}
+                            min="1"
+                        />
+                    </label>
+                    <label>
+                        Startdatum:
+                        <input
+                            type="date"
+                            value={recurrenceStartDate}
+                            onChange={handleRecurrenceStartDateChange}
+                        />
+                    </label>
+                    <label>
+                        Enddatum (optional):
+                        <input
+                            type="date"
+                            value={recurrenceEndDate}
+                            onChange={handleRecurrenceEndDateChange}
+                        />
+                    </label>
+                </div>
+            )}
+
             <button disabled={!title.trim()} onClick={itemHinzufuegen}>Add</button>
 
             <ul>
-    {tasks.map(({ id, title, completed, deadline, isEditingDeadline, deadlineInput, note, isEditingNote, noteInput }) => (
-        <li
-            key={id}
-            className={`${completed ? "completed completed-colored" : ""} ${theme === 'dark' ? (completed ? "dark-mode dark-mode-completed-colored completed" : "dark-mode") : ""}`}
-        >
-            <input
-                type='checkbox'
-                checked={completed}
-                onChange={() => taskStatusAktualisieren(id, completed)}
-            />
-            {title}
-            {!isEditingDeadline ? (
-                <>
-                    {deadline && <span className="deadline">Deadline: {deadline}</span>}
-                    <button onClick={() => toggleEditDeadline(id)}>Deadline setzen</button>
-                </>
-            ) : (
-                <div>
-                    <input
-                        type="datetime-local"
-                        value={deadlineInput}
-                        onChange={(e) => handleDeadlineInputChange(id, e)}
-                    />
-                    <button onClick={() => handleSetDeadline(id)}>Speichern</button>
-                    <button onClick={() => toggleEditDeadline(id)}>Abbrechen</button>
-                </div>
-            )}
-            {!isEditingNote ? (
-                <>
-                    {note && <div className="note">Notiz: {note}</div>}
-                    <button onClick={() => toggleEditNote(id)}>Notiz hinzufügen</button>
-                </>
-            ) : (
-                <div className="note-input-container">
-                    <textarea
-                        value={noteInput}
-                        onChange={(e) => handleNoteInputChange(id, e)}
-                        placeholder="Notiz eingeben..."
-                    />
-                    <button onClick={() => handleSetNote(id)}>Speichern</button>
-                    <button onClick={() => toggleEditNote(id)}>Abbrechen</button>
-                </div>
-            )}
-            <button onClick={() => itemLoeschen(id)}>X</button>
-        </li>
-    ))}
-</ul>
+                {tasks.map(({ id, title, completed, deadline, isEditingDeadline, deadlineInput, note, isEditingNote, noteInput }) => (
+                    <li
+                        key={id}
+                        className={`${completed ? "completed" : ""} ${theme === 'dark' ? "dark-mode" : ""}`}
+                    >
+                        <input
+                            type='checkbox'
+                            checked={completed}
+                            onChange={() => taskStatusAktualisieren(id, completed)}
+                        />
+                        {title}
+                        {!isEditingDeadline ? (
+                            <>
+                                {deadline && <span className="deadline">Deadline: {deadline}</span>}
+                                <button onClick={() => toggleEditDeadline(id)}>Deadline setzen</button>
+                            </>
+                        ) : (
+                            <div>
+                                <input
+                                    type="datetime-local"
+                                    value={deadlineInput}
+                                    onChange={(e) => handleDeadlineInputChange(id, e)}
+                                />
+                                <button onClick={() => handleSetDeadline(id)}>Speichern</button>
+                                <button onClick={() => toggleEditDeadline(id)}>Abbrechen</button>
+                            </div>
+                        )}
+                        {!isEditingNote ? (
+                            <>
+                                {note && <div className="note">Notiz: {note}</div>}
+                                <button onClick={() => toggleEditNote(id)}>Notiz hinzufügen</button>
+                            </>
+                        ) : (
+                            <div className="note-input-container">
+                                <textarea
+                                    value={noteInput}
+                                    onChange={(e) => handleNoteInputChange(id, e)}
+                                    placeholder="Notiz eingeben..."
+                                />
+                                <button onClick={() => handleSetNote(id)}>Speichern</button>
+                                <button onClick={() => toggleEditNote(id)}>Abbrechen</button>
+                            </div>
+                        )}
+                        <button onClick={() => itemLoeschen(id)}>X</button>
+                    </li>
+                ))}
+            </ul>
         </>
     );
 }
