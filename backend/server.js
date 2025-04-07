@@ -2,122 +2,172 @@ const express = require('express');
 const sqlite3 = require('sqlite3');
 const bodyParser = require('body-parser');
 const cors = require('cors');
+const bcrypt = require('bcrypt');
+const jwt = require('jsonwebtoken');
 
 const app = express();
+const SECRET_KEY = 'Ihr_Geheimer_Schluessel';
 
-// Verbindung zur Datenbank
+// -------------------------------
+// Datenbankinitialisierung
+// -------------------------------
 const db = new sqlite3.Database('./tasks.db');
 
-// Spalten hinzufügen, falls sie noch nicht existieren
-db.run('ALTER TABLE tasks ADD COLUMN deadline TEXT', (err) => {
-    if (err) {
-        console.log("Die Spalte 'deadline' existiert möglicherweise bereits:", err.message);
-    } else {
-        console.log("Spalte 'deadline' erfolgreich hinzugefügt.");
-    }
-});
+// Tabellen erstellen
+db.serialize(() => {
+  db.run(`
+    CREATE TABLE IF NOT EXISTS users (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      username TEXT UNIQUE NOT NULL,
+      password TEXT NOT NULL,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    )
+  `);
 
-db.run('ALTER TABLE tasks ADD COLUMN note TEXT', (err) => {
-    if (err) {
-        console.log("Die Spalte 'note' existiert möglicherweise bereits:", err.message);
-    } else {
-        console.log("Spalte 'note' erfolgreich hinzugefügt.");
-    }
+  db.run(`
+    CREATE TABLE IF NOT EXISTS tasks (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      title TEXT,
+      completed BOOLEAN DEFAULT 0,
+      deadline TEXT,
+      note TEXT,
+      user_id INTEGER,
+      FOREIGN KEY(user_id) REFERENCES users(id)
+    )
+  `);
 });
 
 app.use(cors());
 app.use(bodyParser.json());
 
-// Tabelle erstellen, falls sie nicht existiert
-db.run('CREATE TABLE IF NOT EXISTS tasks (id INTEGER PRIMARY KEY AUTOINCREMENT, title TEXT, completed BOOLEAN DEFAULT 0, deadline TEXT, note TEXT)');
+// -------------------------------
+// Authentifizierungs-Middleware
+// -------------------------------
+function authenticateToken(req, res, next) {
+  const authHeader = req.headers['authorization'];
+  const token = authHeader && authHeader.split(' ')[1];
+  
+  if (!token) return res.sendStatus(401);
+  
+  jwt.verify(token, SECRET_KEY, (err, user) => {
+    if (err) return res.sendStatus(403);
+    req.user = user;
+    next();
+  });
+}
 
-// Requests und Responses
-app.get('/', (req, res) => {
-    res.send('genau');
-});
-
-app.get('/lachs_suschi', (req, res) => {
-    res.send("hier ist ein leckeres Lachs Sushi!");
-});
-
-app.get('/ralf', (req, res) => {
-    res.send('vielen Dank Ralf');
-});
-
-// Neues Item hinzufügen (inkl. completed, deadline und note)
-app.post('/add', (req, res) => {
-    db.run('INSERT INTO tasks (title, completed, deadline, note) VALUES (?, ?, ?, ?)', 
-        [req.body.title, req.body.completed || 0, req.body.deadline || null, null], 
-        function () {
-            res.json({ id: this.lastID, title: req.body.title, completed: req.body.completed || 0, deadline: req.body.deadline || null, note: null });
-        }
-    );
-});
-
-// Alle Items abrufen
-app.get('/liste_abrufen', (req, res) => {
-    db.all('SELECT * FROM tasks', (err, rows) => {
+// -------------------------------
+// Benutzer-Endpunkte
+// -------------------------------
+app.post('/register', async (req, res) => {
+  try {
+    const { username, password } = req.body;
+    const hashedPassword = await bcrypt.hash(password, 10);
+    
+    db.run('INSERT INTO users (username, password) VALUES (?, ?)', 
+      [username, hashedPassword], 
+      function(err) {
         if (err) {
-            res.status(500).json({ error: err.message });
-            return;
+          return res.status(400).json({ error: 'Benutzername bereits vergeben' });
         }
-        res.json(rows);
-    });
-});
-
-// Aufgabe als erledigt markieren
-app.put('/update/:id', (req, res) => {
-    db.run('UPDATE tasks SET completed = ? WHERE id = ?', 
-        [req.body.completed, req.params.id], 
-        function (err) {
-            if (err) {
-                res.status(400).json({ error: err.message });
-                return;
-            }
-            res.json({ message: 'Task updated', changes: this.changes });
-        }
+        res.status(201).json({ message: 'Benutzer erfolgreich registriert' });
+      }
     );
+  } catch (error) {
+    res.status(500).json({ error: 'Serverfehler bei der Registrierung' });
+  }
 });
 
-// Deadline aktualisieren
-app.put('/update_deadline/:id', (req, res) => {
-    db.run('UPDATE tasks SET deadline = ? WHERE id = ?', 
-        [req.body.deadline, req.params.id], 
-        function (err) {
-            if (err) {
-                res.status(400).json({ error: err.message });
-                return;
-            }
-            res.json({ message: 'Deadline updated', changes: this.changes });
-        }
-    );
+app.post('/login', (req, res) => {
+  const { username, password } = req.body;
+  
+  db.get('SELECT * FROM users WHERE username = ?', [username], async (err, user) => {
+    if (err || !user) {
+      return res.status(400).json({ error: 'Ungültige Anmeldedaten' });
+    }
+    
+    const isMatch = await bcrypt.compare(password, user.password);
+    if (!isMatch) {
+      return res.status(400).json({ error: 'Ungültige Anmeldedaten' });
+    }
+    
+    const token = jwt.sign({ id: user.id, username: user.username }, SECRET_KEY, { expiresIn: '1h' });
+    res.json({ token, username: user.username });
+  });
 });
 
-// Notiz aktualisieren
-app.put('/update_note/:id', (req, res) => {
-    db.run('UPDATE tasks SET note = ? WHERE id = ?', 
-        [req.body.note, req.params.id], 
-        function (err) {
-            if (err) {
-                res.status(400).json({ error: err.message });
-                return;
-            }
-            res.json({ message: 'Notiz erfolgreich aktualisiert.', changes: this.changes });
-        }
-    );
+app.get('/me', authenticateToken, (req, res) => {
+  res.json({ user: req.user });
 });
 
-// Item löschen
-app.delete('/delete/:id', (req, res) => {
-    db.run('DELETE FROM tasks WHERE id = ?', req.params.id, (err) => {
-        if (err) {
-            res.status(400).json({ error: err.message });
-            return;
-        }
-        res.json({ message: "Eingabe gelöscht" });
-    });
+// -------------------------------
+// Aufgaben-Endpunkte
+// -------------------------------
+app.get('/liste_abrufen', authenticateToken, (req, res) => {
+  db.all('SELECT * FROM tasks WHERE user_id = ?', [req.user.id], (err, rows) => {
+    if (err) {
+      res.status(500).json({ error: err.message });
+      return;
+    }
+    res.json(rows);
+  });
 });
 
+app.post('/add', authenticateToken, (req, res) => {
+  db.run('INSERT INTO tasks (title, completed, deadline, note, user_id) VALUES (?, ?, ?, ?, ?)', 
+    [req.body.title, req.body.completed || 0, req.body.deadline || null, null, req.user.id], 
+    function () {
+      res.json({ 
+        id: this.lastID, 
+        title: req.body.title, 
+        completed: req.body.completed || 0, 
+        deadline: req.body.deadline || null, 
+        note: null,
+        user_id: req.user.id
+      });
+    }
+  );
+});
+
+app.put('/update/:id', authenticateToken, (req, res) => {
+  db.run('UPDATE tasks SET completed = ? WHERE id = ? AND user_id = ?', 
+    [req.body.completed, req.params.id, req.user.id], 
+    function (err) {
+      if (err) {
+        res.status(400).json({ error: err.message });
+        return;
+      }
+      res.json({ message: 'Task updated', changes: this.changes });
+    }
+  );
+});
+
+app.put('/update_note/:id', authenticateToken, (req, res) => {
+  db.run('UPDATE tasks SET note = ? WHERE id = ? AND user_id = ?', 
+    [req.body.note, req.params.id, req.user.id], 
+    function (err) {
+      if (err) {
+        res.status(400).json({ error: err.message });
+        return;
+      }
+      res.json({ message: 'Notiz erfolgreich aktualisiert.', changes: this.changes });
+    }
+  );
+});
+
+app.delete('/delete/:id', authenticateToken, (req, res) => {
+  db.run('DELETE FROM tasks WHERE id = ? AND user_id = ?', [req.params.id, req.user.id], (err) => {
+    if (err) {
+      res.status(400).json({ error: err.message });
+      return;
+    }
+    res.json({ message: "Eingabe gelöscht" });
+  });
+});
+
+// -------------------------------
+// Serverstart
+// -------------------------------
 app.listen(3050, "0.0.0.0", () => {
-    console.log("bald wird es Mittagspause");
+  console.log("Server läuft auf Port 3050");
 });

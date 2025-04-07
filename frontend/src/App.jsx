@@ -2,32 +2,124 @@ import { useEffect, useState } from 'react';
 import './App.css';
 
 function App() {
+  // -------------------------------
+  // State Management
+  // -------------------------------
   const [tasks, setTasks] = useState([]);
   const [title, setTitle] = useState("");
   const [darkMode, setDarkMode] = useState(false);
   const [deadline, setDeadline] = useState("");
+  const [user, setUser] = useState(null);
+  const [token, setToken] = useState(localStorage.getItem('token'));
+  const [authView, setAuthView] = useState('login');
+  const [authError, setAuthError] = useState("");
+  const [authData, setAuthData] = useState({
+    username: "",
+    password: ""
+  });
 
+  // -------------------------------
+  // Dark Mode Handling
+  // -------------------------------
   useEffect(() => {
     document.body.className = darkMode ? 'dark-mode' : '';
   }, [darkMode]);
 
-  // Aufgaben vom Server abrufen
+  // -------------------------------
+  // Authentifizierung
+  // -------------------------------
   useEffect(() => {
-    fetch("http://localhost:3050/liste_abrufen")
-      .then((res) => res.json())
-      .then(setTasks)
-      .catch((error) => console.error("Fehler beim Laden der Aufgaben:", error));
-  }, []);
-
-  // Neue Aufgabe hinzufügen
-  const itemHinzufuegen = () => {
-    if (!title.trim()) {
-      return;
+    if (token) {
+      fetch("http://localhost:3050/me", {
+        headers: { 'Authorization': `Bearer ${token}` }
+      })
+        .then(res => {
+          if (!res.ok) throw new Error('Nicht autorisiert');
+          return res.json();
+        })
+        .then(data => {
+          setUser(data.user);
+          loadTasks();
+        })
+        .catch(() => logout());
     }
+  }, [token]);
+
+  const loadTasks = () => {
+    fetch("http://localhost:3050/liste_abrufen", {
+      headers: { 'Authorization': `Bearer ${token}` }
+    })
+      .then((res) => {
+        if (!res.ok) throw new Error('Fehler beim Laden der Aufgaben');
+        return res.json();
+      })
+      .then(setTasks)
+      .catch((error) => console.error("Fehler:", error));
+  };
+
+  const handleAuthChange = (e) => {
+    setAuthData({
+      ...authData,
+      [e.target.name]: e.target.value
+    });
+  };
+
+  const register = async (e) => {
+    e.preventDefault();
+    try {
+      const response = await fetch("http://localhost:3050/register", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(authData),
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || 'Registrierung fehlgeschlagen');
+      setAuthView('login');
+      setAuthError("");
+    } catch (error) {
+      setAuthError(error.message);
+    }
+  };
+
+  const login = async (e) => {
+    e.preventDefault();
+    try {
+      const response = await fetch("http://localhost:3050/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(authData),
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || 'Login fehlgeschlagen');
+      
+      localStorage.setItem('token', data.token);
+      setToken(data.token);
+      setUser({ username: data.username });
+      setAuthError("");
+    } catch (error) {
+      setAuthError(error.message);
+    }
+  };
+
+  const logout = () => {
+    localStorage.removeItem('token');
+    setToken(null);
+    setUser(null);
+    setTasks([]);
+  };
+
+  // -------------------------------
+  // Aufgabenverwaltung
+  // -------------------------------
+  const itemHinzufuegen = () => {
+    if (!title.trim()) return;
 
     fetch("http://localhost:3050/add", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: { 
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${token}`
+      },
       body: JSON.stringify({ title, completed: false, deadline: deadline || null }),
     })
       .then((res) => res.json())
@@ -38,10 +130,10 @@ function App() {
     setDeadline("");
   };
 
-  // Aufgabe löschen
   const itemLoeschen = (id_nummer) => {
     fetch(`http://localhost:3050/delete/${id_nummer}`, {
       method: "DELETE",
+      headers: { 'Authorization': `Bearer ${token}` }
     })
       .then(() => {
         setTasks((prevTasks) => prevTasks.filter(task => task.id !== id_nummer));
@@ -49,11 +141,13 @@ function App() {
       .catch((error) => console.error("Fehler beim Löschen einer Aufgabe:", error));
   };
 
-  // Aufgabe als erledigt markieren
   const taskStatusAktualisieren = (id_nummer, completed) => {
     fetch(`http://localhost:3050/update/${id_nummer}`, {
       method: "PUT",
-      headers: { "Content-Type": "application/json" },
+      headers: { 
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${token}`
+      },
       body: JSON.stringify({ completed: !completed }),
     })
       .then(() => {
@@ -66,11 +160,13 @@ function App() {
       .catch((error) => console.error("Fehler beim Aktualisieren des Status:", error));
   };
 
-  // Notiz aktualisieren
   const notizAktualisieren = (id_nummer, note) => {
     fetch(`http://localhost:3050/update_note/${id_nummer}`, {
       method: "PUT",
-      headers: { "Content-Type": "application/json" },
+      headers: { 
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${token}`
+      },
       body: JSON.stringify({ note }),
     })
       .then(() => {
@@ -83,13 +179,66 @@ function App() {
       .catch((error) => console.error("Fehler beim Aktualisieren der Notiz:", error));
   };
 
+  // -------------------------------
+  // UI Rendering
+  // -------------------------------
+  if (!user) {
+    return (
+      <div className={`auth-container ${darkMode ? 'dark' : ''}`}>
+        <div className="auth-box">
+          <div className="auth-tabs">
+            <button 
+              onClick={() => setAuthView('login')} 
+              className={authView === 'login' ? 'active' : ''}
+            >
+              Login
+            </button>
+            <button 
+              onClick={() => setAuthView('register')} 
+              className={authView === 'register' ? 'active' : ''}
+            >
+              Registrieren
+            </button>
+          </div>
+          
+          {authError && <div className="auth-error">{authError}</div>}
+          
+          <form onSubmit={authView === 'login' ? login : register}>
+            <input
+              type="text"
+              name="username"
+              placeholder="Benutzername"
+              value={authData.username}
+              onChange={handleAuthChange}
+              required
+            />
+            <input
+              type="password"
+              name="password"
+              placeholder="Passwort"
+              value={authData.password}
+              onChange={handleAuthChange}
+              required
+            />
+            <button type="submit">
+              {authView === 'login' ? 'Einloggen' : 'Registrieren'}
+            </button>
+          </form>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className={`container ${darkMode ? 'dark' : ''}`}>
       <div className="header">
-        <h1>To-Do List</h1>
-        <button onClick={() => setDarkMode(!darkMode)} className="mode-toggle">
-          {darkMode ? '☀️' : '🌙'}
-        </button>
+        <h1>To-Do List - Hallo {user.username}</h1>
+        <div>
+          <button onClick={logout} className="logout-btn">Logout</button>
+          <button onClick={() => setDarkMode(!darkMode)} className="mode-toggle">
+            {darkMode ? '☀️' : '🌙'}
+          </button>
+        </div>
       </div>
       
       <div className="input-group">
