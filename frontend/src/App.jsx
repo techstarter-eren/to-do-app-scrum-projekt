@@ -268,8 +268,8 @@ function App() {
               }}
             >
               {title}
-            </span> 
-            <em style={{ marginLeft: '10px' }}>
+            </span>
+            <em style={{ marginLeft: '10 px' }}>
               Deadline: {deadline ? new Date(deadline).toLocaleString() : "Keine"}
             </em>
             <textarea 

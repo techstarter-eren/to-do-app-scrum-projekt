@@ -5,7 +5,7 @@
 
   color-scheme: light dark;
   color: rgba(255, 255, 255, 0.87);
-  background-color: #242424;
+  background-color: #beb9b9;
 
   font-synthesis: none;
   text-rendering: optimizeLegibility;
@@ -25,7 +25,7 @@ body {
 // Dark Mode
 // ------------------------------- */
 body.dark-mode {
-  background: #222;
+  background: #050505;
   color: #eee;
 }
 
@@ -39,7 +39,7 @@ body.dark-mode {
 }
 
 .container.dark {
-  background: #333;
+  background: #1a1919;
 }
 
 .header {
@@ -66,7 +66,19 @@ body.dark-mode {
 }
 
 .container.dark .task-list li {
-  background: #444;
+  background: #444444;
+}
+
+.task-list li em {
+  color: #555;  /* Dunkelgrau für Light Mode */
+  font-size: 0.9em;
+  margin-left: 10px;
+}
+
+.container.dark .task-list li em {
+  color: rgb(115, 145, 131);
+  font-size: 0.9em;
+  margin-left: 10px;
 }
 
 .completed {
@@ -106,7 +118,7 @@ button {
   font-size: 1em;
   font-weight: 500;
   font-family: inherit;
-  background-color: #1a1a1a;
+  background-color: #b7c3e6;
   cursor: pointer;
   transition: border-color 0.25s;
 }
@@ -142,7 +154,7 @@ button:hover {
 }
 
 .container.dark .auth-box {
-  background: #444;
+  background: #333232;
   box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
 }
 
