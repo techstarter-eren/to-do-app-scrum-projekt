@@ -10,6 +10,10 @@ function App() {
     const [recurrenceInterval, setRecurrenceInterval] = useState(1);
     const [recurrenceStartDate, setRecurrenceStartDate] = useState('');
     const [recurrenceEndDate, setRecurrenceEndDate] = useState('');
+    const [categories, setCategories] = useState(['Arbeit', 'Privat', 'Einkaufen']); // Vordefinierte Kategorien
+    const [selectedCategory, setSelectedCategory] = useState('');
+    const [newCategory, setNewCategory] = useState('');
+    const [isAddingNewCategory, setIsAddingNewCategory] = useState(false);
 
     useEffect(() => {
         fetch("http://localhost:3050/liste_abrufen")
@@ -44,6 +48,33 @@ function App() {
     const handleRecurrenceEndDateChange = (event) => {
         setRecurrenceEndDate(event.target.value);
     };
+    const handleCategoryChange = (event) => {
+        setSelectedCategory(event.target.value);
+    };
+
+    const handleNewCategoryChange = (event) => {
+        setNewCategory(event.target.value);
+    };
+
+    const handleAddNewCategoryClick = () => {
+        setIsAddingNewCategory(true);
+    };
+
+    const handleSaveNewCategory = () => {
+        if (newCategory.trim() && !categories.includes(newCategory.trim())) {
+            setCategories([...categories, newCategory.trim()]);
+            setSelectedCategory(newCategory.trim());
+            setNewCategory('');
+            setIsAddingNewCategory(false);
+            // Hier könntest du die neue Kategorie auch direkt im Backend speichern (später)
+        }
+        setIsAddingNewCategory(false);
+    };
+
+    const handleCancelNewCategory = () => {
+        setNewCategory('');
+        setIsAddingNewCategory(false);
+    };
 
     const itemHinzufuegen = () => {
         if (!title.trim()) {
@@ -53,6 +84,7 @@ function App() {
         const newTaskData = {
             title,
             completed: false,
+            category: selectedCategory, // Füge die ausgewählte Kategorie hinzu
             recurring: isRecurring ? 1 : 0,
             recurrence_type: isRecurring ? recurrenceType : null,
             recurrence_interval: isRecurring ? parseInt(recurrenceInterval, 10) : null,
@@ -69,6 +101,7 @@ function App() {
             .then((neueAufgabe) => setTasks([...tasks, { ...neueAufgabe, isEditingDeadline: false, deadlineInput: '', isEditingNote: false, noteInput: '' }]));
 
         setTitle("");
+        setSelectedCategory(''); // Reset selected category
         setIsRecurring(false);
         setRecurrenceType('daily');
         setRecurrenceInterval(1);
@@ -164,6 +197,36 @@ function App() {
             <h1>To-Do List</h1>
             <input value={title} onChange={(e) => setTitle(e.target.value)} />
             <label>
+                Kategorie:
+                <select value={selectedCategory} onChange={handleCategoryChange}>
+                    <option value="">-- Wähle eine Kategorie --</option>
+                    {categories.map((cat) => (
+                        <option key={cat} value={cat}>{cat}</option>
+                    ))}
+                    <option value="new-category" disabled={isAddingNewCategory}>
+                        {isAddingNewCategory ? 'Neue Kategorie hinzufügen...' : '+ Neue Kategorie'}
+                    </option>
+                </select>
+            </label>
+
+            {selectedCategory === 'new-category' && !isAddingNewCategory && (
+                <button type="button" onClick={handleAddNewCategoryClick}>Neue Kategorie erstellen</button>
+            )}
+
+            {isAddingNewCategory && (
+                <div>
+                    <input
+                        type="text"
+                        value={newCategory}
+                        onChange={handleNewCategoryChange}
+                        placeholder="Name der neuen Kategorie"
+                    />
+                    <button type="button" onClick={handleSaveNewCategory}>Speichern</button>
+                    <button type="button" onClick={handleCancelNewCategory}>Abbrechen</button>
+                </div>
+            )}
+
+            <label>
                 <input
                     type="checkbox"
                     checked={isRecurring}
@@ -213,7 +276,7 @@ function App() {
             <button disabled={!title.trim()} onClick={itemHinzufuegen}>Add</button>
 
             <ul>
-                {tasks.map(({ id, title, completed, deadline, isEditingDeadline, deadlineInput, note, isEditingNote, noteInput }) => (
+                {tasks.map(({ id, title, completed, deadline, isEditingDeadline, deadlineInput, note, isEditingNote, noteInput, category }) => (
                     <li
                         key={id}
                         className={`${completed ? "completed" : ""} ${theme === 'dark' ? "dark-mode" : ""}`}
@@ -224,6 +287,7 @@ function App() {
                             onChange={() => taskStatusAktualisieren(id, completed)}
                         />
                         {title}
+                        {category && <span className="category">[{category}]</span>}
                         {!isEditingDeadline ? (
                             <>
                                 {deadline && <span className="deadline">Deadline: {deadline}</span>}

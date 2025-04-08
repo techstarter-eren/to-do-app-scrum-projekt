@@ -3,13 +3,16 @@ const sqlite3 = require('sqlite3');
 const bodyParser = require('body-parser');
 const cors = require('cors');
 
+
+
 const app = express();
 
 // Verbindung zur Datenbank
 const db = new sqlite3.Database('./tasks.db');
 
+
 // Tabelle erstellen, falls sie nicht existiert
-db.run('CREATE TABLE IF NOT EXISTS tasks (id INTEGER PRIMARY KEY AUTOINCREMENT, title TEXT, completed INTEGER DEFAULT 0, deadline TEXT, note TEXT, recurring INTEGER DEFAULT 0, recurrence_type TEXT, recurrence_interval INTEGER, recurrence_start_date TEXT, recurrence_end_date TEXT)', (err) => {
+db.run('CREATE TABLE IF NOT EXISTS tasks (id INTEGER PRIMARY KEY AUTOINCREMENT, title TEXT, completed INTEGER DEFAULT 0, deadline TEXT, note TEXT, recurring INTEGER DEFAULT 0, recurrence_type TEXT, recurrence_interval INTEGER, recurrence_start_date TEXT, recurrence_end_date TEXT, category TEXT)', (err) => {
     if (err) {
         console.error('Error creating tasks table:', err.message);
     } else {
@@ -84,6 +87,15 @@ db.run('ALTER TABLE tasks ADD COLUMN recurrence_end_date TEXT', (err) => {
     }
 });
 
+// Add category column to tasks table if it doesn't exist
+db.run('ALTER TABLE tasks ADD COLUMN category TEXT', (err) => {
+    if (err && !err.message.includes('duplicate column name')) {
+        console.error('Error adding category column:', err.message);
+    } else if (!err) {
+        console.log('The category column was successfully added to the tasks table.');
+    }
+});
+
 
 app.use(cors());
 app.use(bodyParser.json());
@@ -102,14 +114,14 @@ app.get('/ralf', (req, res) => {
     res.send('vielen Dank Ralf');
 });
 
-// Neues Element hinzufügen (inkl. erledigt und Wiederholung)
+// Neues Element hinzufügen (inkl. erledigt, Wiederholung und Kategorie)
 app.post('/add', (req, res) => {
-    const { title, completed, recurring, recurrence_type, recurrence_interval, recurrence_start_date, recurrence_end_date } = req.body;
+    const { title, completed, category, recurring, recurrence_type, recurrence_interval, recurrence_start_date, recurrence_end_date } = req.body;
     db.run(
-        'INSERT INTO tasks (title, completed, recurring, recurrence_type, recurrence_interval, recurrence_start_date, recurrence_end_date) VALUES (?, ?, ?, ?, ?, ?, ?)',
-        [title, completed || 0, recurring || 0, recurrence_type, recurrence_interval, recurrence_start_date, recurrence_end_date],
+        'INSERT INTO tasks (title, completed, category, recurring, recurrence_type, recurrence_interval, recurrence_start_date, recurrence_end_date) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+        [title, completed || 0, category, recurring || 0, recurrence_type, recurrence_interval, recurrence_start_date, recurrence_end_date],
         function () {
-            res.json({ id: this.lastID, title, completed: completed || 0, deadline: null, note: null, recurring: recurring || 0, recurrence_type, recurrence_interval, recurrence_start_date, recurrence_end_date });
+            res.json({ id: this.lastID, title, completed: completed || 0, category, deadline: null, note: null, recurring: recurring || 0, recurrence_type, recurrence_interval, recurrence_start_date, recurrence_end_date });
         }
     );
 });
