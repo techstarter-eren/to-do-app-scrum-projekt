@@ -2,33 +2,44 @@ import { useEffect, useState } from 'react';
 import './App.css';
 
 function App() {
+  const [categories, setCategories] = useState([]);
+  const [selectedCategory, setSelectedCategory] = useState(null);
   const [tasks, setTasks] = useState([]);
   const [title, setTitle] = useState("");
-  const [darkMode, setDarkMode] = useState(false);
+  const [note, setNote] = useState("");
   const [deadline, setDeadline] = useState("");
+  const [darkMode, setDarkMode] = useState(false);
+  const [newCategoryName, setNewCategoryName] = useState("");
 
   useEffect(() => {
     document.body.className = darkMode ? 'dark-mode' : '';
   }, [darkMode]);
 
-  // Aufgaben vom Server abrufen
   useEffect(() => {
-    fetch("http://localhost:3050/liste_abrufen")
+    fetch("http://localhost:3050/categories")
       .then((res) => res.json())
-      .then(setTasks)
-      .catch((error) => console.error("Fehler beim Laden der Aufgaben:", error));
+      .then(setCategories)
+      .catch((error) => console.error("Fehler beim Laden der Kategorien:", error));
   }, []);
 
-  // Neue Aufgabe hinzufügen
+  useEffect(() => {
+    if (selectedCategory) {
+      fetch(`http://localhost:3050/tasks/${selectedCategory}`)
+        .then((res) => res.json())
+        .then(setTasks)
+        .catch((error) => console.error("Fehler beim Laden der Aufgaben:", error));
+    }
+  }, [selectedCategory]);
+
   const itemHinzufuegen = () => {
-    if (!title.trim()) {
+    if (!title.trim() || !selectedCategory) {
       return;
     }
 
-    fetch("http://localhost:3050/add", {
+    fetch("http://localhost:3050/add_task", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ title, completed: false, deadline: deadline || null }),
+      body: JSON.stringify({ title, completed: false, deadline, note, category_id: selectedCategory }),
     })
       .then((res) => res.json())
       .then((neueAufgabe) => setTasks([...tasks, neueAufgabe]))
@@ -36,51 +47,28 @@ function App() {
 
     setTitle("");
     setDeadline("");
+    setNote("");
   };
 
-  // Aufgabe löschen
-  const itemLoeschen = (id_nummer) => {
-    fetch(`http://localhost:3050/delete/${id_nummer}`, {
-      method: "DELETE",
-    })
-      .then(() => {
-        setTasks((prevTasks) => prevTasks.filter(task => task.id !== id_nummer));
-      })
-      .catch((error) => console.error("Fehler beim Löschen einer Aufgabe:", error));
-  };
+  const categoryHinzufuegen = () => {
+    if (!newCategoryName.trim()) return;
 
-  // Aufgabe als erledigt markieren
-  const taskStatusAktualisieren = (id_nummer, completed) => {
-    fetch(`http://localhost:3050/update/${id_nummer}`, {
-      method: "PUT",
+    fetch("http://localhost:3050/add_category", {
+      method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ completed: !completed }),
+      body: JSON.stringify({ name: newCategoryName }),
     })
-      .then(() => {
-        setTasks((prevTasks) =>
-          prevTasks.map(task =>
-            task.id === id_nummer ? { ...task, completed: !completed } : task
-          )
-        );
-      })
-      .catch((error) => console.error("Fehler beim Aktualisieren des Status:", error));
+      .then((res) => res.json())
+      .then((neueKategorie) => setCategories([...categories, neueKategorie]))
+      .catch((error) => console.error("Fehler beim Hinzufügen einer Kategorie:", error));
+
+    setNewCategoryName("");
   };
 
-  // Notiz aktualisieren
-  const notizAktualisieren = (id_nummer, note) => {
-    fetch(`http://localhost:3050/update_note/${id_nummer}`, {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ note }),
-    })
-      .then(() => {
-        setTasks((prevTasks) =>
-          prevTasks.map(task =>
-            task.id === id_nummer ? { ...task, note } : task
-          )
-        );
-      })
-      .catch((error) => console.error("Fehler beim Aktualisieren der Notiz:", error));
+  const categoryLoeschen = (id) => {
+    fetch(`http://localhost:3050/delete_category/${id}`, { method: "DELETE" })
+      .then(() => setCategories((prevCategories) => prevCategories.filter(cat => cat.id !== id)))
+      .catch((error) => console.error("Fehler beim Löschen einer Kategorie:", error));
   };
 
   return (
@@ -91,48 +79,48 @@ function App() {
           {darkMode ? '☀️' : '🌙'}
         </button>
       </div>
-      
-      <div className="input-group">
-        <input 
-          value={title}  
-          onChange={(e) => setTitle(e.target.value)} 
-          placeholder="Neue Aufgabe..."
-        />
-        <input
-          type="datetime-local"
-          value={deadline}
-          onChange={(e) => setDeadline(e.target.value)}
-          placeholder="Deadline festlegen"
-        />
-        <button disabled={!title.trim()} onClick={itemHinzufuegen}>Add</button>
+
+      <div className="category-selection">
+        <h2>Kategorie auswählen</h2>
+        <div className="category-buttons">
+          {categories.map((category) => (
+            <div key={category.id} className="category-item">
+              <button onClick={() => setSelectedCategory(category.id)}>
+                {category.name}
+              </button>
+              <button onClick={() => categoryLoeschen(category.id)} className="delete-button">🗑️</button>
+            </div>
+          ))}
+        </div>
+
+        {selectedCategory ? (
+          <button onClick={() => setSelectedCategory(null)}>Zurück zur Kategorie-Auswahl</button>
+        ) : (
+          <>
+            <input value={newCategoryName} onChange={(e) => setNewCategoryName(e.target.value)} placeholder="Neue Kategorie..." />
+            <button onClick={categoryHinzufuegen}>Kategorie hinzufügen</button>
+          </>
+        )}
       </div>
 
-      <ul className="task-list">
-        {tasks.map(({ id, title, completed, deadline, note }) => (
-          <li key={id}>
-            <input type='checkbox' checked={completed} onChange={() => taskStatusAktualisieren(id, completed)} />
-            <span 
-              className={`task-text ${completed ? 'completed' : 'pending'}`}
-              style={{
-                color: completed ? '#006400' : '#8B0000',
-                fontWeight: 'bold'
-              }}
-            >
-              {title}
-            </span> 
-            <em style={{ marginLeft: '10px' }}>
-              Deadline: {deadline ? new Date(deadline).toLocaleString() : "Keine"}
-            </em>
-            <textarea 
-              value={note || ""}
-              placeholder="Notiz hinzufügen..."
-              onChange={(e) => notizAktualisieren(id, e.target.value)}
-              style={{ width: "100%", minHeight: "40px", marginTop: "8px" }}
-            />
-            <button onClick={() => itemLoeschen(id)}>X</button>
-          </li>
-        ))}
-      </ul>
+      {selectedCategory && (
+        <>
+          <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Neue Aufgabe..." />
+          <input type="datetime-local" value={deadline} onChange={(e) => setDeadline(e.target.value)} placeholder="Deadline festlegen" />
+          <textarea value={note} onChange={(e) => setNote(e.target.value)} placeholder="Notiz hinzufügen..." />
+          <button disabled={!title.trim()} onClick={itemHinzufuegen}>Add</button>
+
+          <ul className="task-list">
+            {tasks.map(({ id, title, completed, deadline, note }) => (
+              <li key={id}>
+                <span className={`task-text ${completed ? 'completed' : 'pending'}`}>{title}</span>
+                <p>Deadline: {deadline ? new Date(deadline).toLocaleString() : "Keine"}</p>
+                <textarea value={note || ""} onChange={(e) => setNote(e.target.value)} placeholder="Notiz bearbeiten..."></textarea>
+              </li>
+            ))}
+          </ul>
+        </>
+      )}
     </div>
   );
 }
