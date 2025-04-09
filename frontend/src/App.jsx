@@ -2,9 +2,6 @@ import { useEffect, useState } from 'react';
 import './App.css';
 
 function App() {
-  // -------------------------------
-  // State Management
-  // -------------------------------
   const [tasks, setTasks] = useState([]);
   const [title, setTitle] = useState("");
   const [darkMode, setDarkMode] = useState(false);
@@ -17,17 +14,12 @@ function App() {
     username: "",
     password: ""
   });
+  const [taskAttachments, setTaskAttachments] = useState({});
 
-  // -------------------------------
-  // Dark Mode Handling
-  // -------------------------------
   useEffect(() => {
     document.body.className = darkMode ? 'dark-mode' : '';
   }, [darkMode]);
 
-  // -------------------------------
-  // Authentifizierung
-  // -------------------------------
   useEffect(() => {
     if (token) {
       fetch("http://localhost:3050/me", {
@@ -45,6 +37,23 @@ function App() {
     }
   }, [token]);
 
+  const loadAttachmentsForTasks = async (taskIds) => {
+    const attachmentsMap = {};
+    for (const taskId of taskIds) {
+      try {
+        const response = await fetch(`http://localhost:3050/attachments/${taskId}`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        const data = await response.json();
+        attachmentsMap[taskId] = data;
+      } catch (error) {
+        console.error(`Fehler beim Laden der Anhänge für Task ${taskId}:`, error);
+        attachmentsMap[taskId] = [];
+      }
+    }
+    setTaskAttachments(attachmentsMap);
+  };
+
   const loadTasks = () => {
     fetch("http://localhost:3050/liste_abrufen", {
       headers: { 'Authorization': `Bearer ${token}` }
@@ -53,7 +62,10 @@ function App() {
         if (!res.ok) throw new Error('Fehler beim Laden der Aufgaben');
         return res.json();
       })
-      .then(setTasks)
+      .then((tasks) => {
+        setTasks(tasks);
+        loadAttachmentsForTasks(tasks.map(t => t.id));
+      })
       .catch((error) => console.error("Fehler:", error));
   };
 
@@ -106,11 +118,9 @@ function App() {
     setToken(null);
     setUser(null);
     setTasks([]);
+    setTaskAttachments({});
   };
 
-  // -------------------------------
-  // Aufgabenverwaltung
-  // -------------------------------
   const itemHinzufuegen = () => {
     if (!title.trim()) return;
 
@@ -123,7 +133,10 @@ function App() {
       body: JSON.stringify({ title, completed: false, deadline: deadline || null }),
     })
       .then((res) => res.json())
-      .then((neueAufgabe) => setTasks([...tasks, neueAufgabe]))
+      .then((neueAufgabe) => {
+        setTasks([...tasks, neueAufgabe]);
+        setTaskAttachments({...taskAttachments, [neueAufgabe.id]: []});
+      })
       .catch((error) => console.error("Fehler beim Hinzufügen einer Aufgabe:", error));
 
     setTitle("");
@@ -137,6 +150,9 @@ function App() {
     })
       .then(() => {
         setTasks((prevTasks) => prevTasks.filter(task => task.id !== id_nummer));
+        const updatedAttachments = {...taskAttachments};
+        delete updatedAttachments[id_nummer];
+        setTaskAttachments(updatedAttachments);
       })
       .catch((error) => console.error("Fehler beim Löschen einer Aufgabe:", error));
   };
@@ -179,9 +195,133 @@ function App() {
       .catch((error) => console.error("Fehler beim Aktualisieren der Notiz:", error));
   };
 
-  // -------------------------------
-  // UI Rendering
-  // -------------------------------
+  const FileUpload = ({ taskId, onUploadSuccess }) => {
+    const [isUploading, setIsUploading] = useState(false);
+    const [error, setError] = useState(null);
+
+    const handleFileChange = async (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+
+      const allowedTypes = ['image/jpeg', 'image/png', 'image/jpg', 'application/pdf'];
+      if (!allowedTypes.includes(file.type)) {
+        setError('Nur PDF, JPEG, JPG und PNG Dateien sind erlaubt');
+        return;
+      }
+
+      if (file.size > 10 * 1024 * 1024) {
+        setError('Datei ist zu groß (max. 10MB)');
+        return;
+      }
+
+      setIsUploading(true);
+      setError(null);
+
+      const formData = new FormData();
+      formData.append('file', file);
+
+      try {
+        const response = await fetch(`http://localhost:3050/upload/${taskId}`, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${token}`
+          },
+          body: formData
+        });
+
+        if (!response.ok) {
+          throw new Error(await response.text());
+        }
+
+        const data = await response.json();
+        onUploadSuccess(data);
+      } catch (err) {
+        setError(err.message || 'Fehler beim Hochladen der Datei');
+      } finally {
+        setIsUploading(false);
+      }
+    };
+
+    return (
+      <div className="file-upload">
+        <label className="upload-button">
+          {isUploading ? 'Wird hochgeladen...' : 'Datei hinzufügen'}
+          <input 
+            type="file" 
+            onChange={handleFileChange}
+            accept=".pdf,.jpg,.jpeg,.png"
+            style={{ display: 'none' }}
+            disabled={isUploading}
+          />
+        </label>
+        {error && <div className="upload-error">{error}</div>}
+      </div>
+    );
+  };
+
+  const AttachmentPreview = ({ attachment, onDelete }) => {
+    const [isDeleting, setIsDeleting] = useState(false);
+    const [showModal, setShowModal] = useState(false);
+
+    const handleDelete = async () => {
+      setIsDeleting(true);
+      try {
+        await onDelete(attachment.id);
+      } catch (error) {
+        console.error('Fehler beim Löschen:', error);
+      } finally {
+        setIsDeleting(false);
+      }
+    };
+
+    const isImage = attachment.filetype.startsWith('image/');
+
+    return (
+      <div className="attachment-preview">
+        {isImage ? (
+          <>
+            <img 
+              src={`http://localhost:3050${attachment.url}`} 
+              alt={attachment.filename}
+              onClick={() => setShowModal(true)}
+              className="thumbnail"
+            />
+            {showModal && (
+              <div className="modal-overlay" onClick={() => setShowModal(false)}>
+                <div className="modal-content" onClick={e => e.stopPropagation()}>
+                  <img 
+                    src={`http://localhost:3050${attachment.url}`} 
+                    alt={attachment.filename}
+                    className="modal-image"
+                  />
+                  <button 
+                    className="modal-close"
+                    onClick={() => setShowModal(false)}
+                  >
+                    ×
+                  </button>
+                </div>
+              </div>
+            )}
+          </>
+        ) : (
+          <div className="pdf-preview" onClick={() => window.open(`http://localhost:3050${attachment.url}`, '_blank')}>
+            <div className="pdf-icon">PDF</div>
+            <span>{attachment.filename.substring(0, 15)}...</span>
+          </div>
+        )}
+        
+        <button 
+          onClick={handleDelete} 
+          disabled={isDeleting}
+          className="delete-attachment"
+        >
+          {isDeleting ? 'Löschen...' : '×'}
+        </button>
+      </div>
+    );
+  };
+
   if (!user) {
     return (
       <div className={`auth-container ${darkMode ? 'dark' : ''}`}>
@@ -257,28 +397,71 @@ function App() {
       </div>
 
       <ul className="task-list">
-        {tasks.map(({ id, title, completed, deadline, note }) => (
-          <li key={id}>
-            <input type='checkbox' checked={completed} onChange={() => taskStatusAktualisieren(id, completed)} />
+        {tasks.map((task) => (
+          <li key={task.id}>
+            <input 
+              type='checkbox' 
+              checked={task.completed} 
+              onChange={() => taskStatusAktualisieren(task.id, task.completed)} 
+            />
             <span 
-              className={`task-text ${completed ? 'completed' : 'pending'}`}
+              className={`task-text ${task.completed ? 'completed' : 'pending'}`}
               style={{
-                color: completed ? '#006400' : '#8B0000',
+                color: task.completed ? '#006400' : '#8B0000',
                 fontWeight: 'bold'
               }}
             >
-              {title}
+              {task.title}
             </span>
-            <em style={{ marginLeft: '10 px' }}>
-              Deadline: {deadline ? new Date(deadline).toLocaleString() : "Keine"}
+            <em style={{ marginLeft: '10px' }}>
+              Deadline: {task.deadline ? new Date(task.deadline).toLocaleString() : "Keine"}
             </em>
             <textarea 
-              value={note || ""}
+              value={task.note || ""}
               placeholder="Notiz hinzufügen..."
-              onChange={(e) => notizAktualisieren(id, e.target.value)}
+              onChange={(e) => notizAktualisieren(task.id, e.target.value)}
               style={{ width: "100%", minHeight: "40px", marginTop: "8px" }}
             />
-            <button onClick={() => itemLoeschen(id)}>X</button>
+            
+            <div className="attachments-container">
+              {(taskAttachments[task.id] || []).map(attachment => (
+                <AttachmentPreview
+                  key={attachment.id}
+                  attachment={attachment}
+                  onDelete={async (attachmentId) => {
+                    try {
+                      const response = await fetch(`http://localhost:3050/attachment/${attachmentId}`, {
+                        method: 'DELETE',
+                        headers: { 'Authorization': `Bearer ${token}` }
+                      });
+                      
+                      if (!response.ok) {
+                        throw new Error('Löschen fehlgeschlagen');
+                      }
+                      
+                      setTaskAttachments(prev => ({
+                        ...prev,
+                        [task.id]: prev[task.id].filter(a => a.id !== attachmentId)
+                      }));
+                    } catch (error) {
+                      console.error('Fehler beim Löschen:', error);
+                    }
+                  }}
+                />
+              ))}
+              
+              <FileUpload 
+                taskId={task.id} 
+                onUploadSuccess={(newAttachment) => {
+                  setTaskAttachments(prev => ({
+                    ...prev,
+                    [task.id]: [...(prev[task.id] || []), newAttachment]
+                  }));
+                }} 
+              />
+            </div>
+            
+            <button onClick={() => itemLoeschen(task.id)}>X</button>
           </li>
         ))}
       </ul>

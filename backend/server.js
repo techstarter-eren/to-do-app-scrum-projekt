@@ -4,6 +4,9 @@ const bodyParser = require('body-parser');
 const cors = require('cors');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
+const multer = require('multer');
+const path = require('path');
+const fs = require('fs');
 
 const app = express();
 const SECRET_KEY = 'Ihr_Geheimer_Schluessel';
@@ -35,6 +38,53 @@ db.serialize(() => {
       FOREIGN KEY(user_id) REFERENCES users(id)
     )
   `);
+
+  db.run(`
+    CREATE TABLE IF NOT EXISTS attachments (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      task_id INTEGER NOT NULL,
+      user_id INTEGER NOT NULL,
+      filename TEXT NOT NULL,
+      filepath TEXT NOT NULL,
+      filetype TEXT NOT NULL,
+      size INTEGER NOT NULL,
+      uploaded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY(task_id) REFERENCES tasks(id),
+      FOREIGN KEY(user_id) REFERENCES users(id)
+    )
+  `);
+});
+
+// -------------------------------
+// Datei-Upload Konfiguration
+// -------------------------------
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    const uploadDir = './uploads';
+    if (!fs.existsSync(uploadDir)) {
+      fs.mkdirSync(uploadDir, { recursive: true });
+    }
+    cb(null, uploadDir);
+  },
+  filename: (req, file, cb) => {
+    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+    cb(null, uniqueSuffix + path.extname(file.originalname));
+  }
+});
+
+const upload = multer({ 
+  storage: storage,
+  fileFilter: (req, file, cb) => {
+    const allowedTypes = ['image/jpeg', 'image/png', 'image/jpg', 'application/pdf'];
+    if (allowedTypes.includes(file.mimetype)) {
+      cb(null, true);
+    } else {
+      cb(new Error('Nur PDF, JPEG, JPG und PNG Dateien sind erlaubt'));
+    }
+  },
+  limits: {
+    fileSize: 10 * 1024 * 1024 // 10MB
+  }
 });
 
 app.use(cors());
@@ -164,6 +214,94 @@ app.delete('/delete/:id', authenticateToken, (req, res) => {
     res.json({ message: "Eingabe gelöscht" });
   });
 });
+
+// -------------------------------
+// Datei-Anhänge Endpunkte
+// -------------------------------
+app.post('/upload/:taskId', authenticateToken, upload.single('file'), (req, res) => {
+  if (!req.file) {
+    return res.status(400).json({ error: 'Keine Datei hochgeladen' });
+  }
+
+  const { taskId } = req.params;
+  const { filename, path: filepath, mimetype: filetype, size } = req.file;
+
+  db.run(
+    'INSERT INTO attachments (task_id, user_id, filename, filepath, filetype, size) VALUES (?, ?, ?, ?, ?, ?)',
+    [taskId, req.user.id, filename, filepath, filetype, size],
+    function(err) {
+      if (err) {
+        fs.unlinkSync(req.file.path);
+        return res.status(500).json({ error: 'Fehler beim Speichern der Datei' });
+      }
+      
+      res.json({
+        id: this.lastID,
+        taskId,
+        filename,
+        filetype,
+        size,
+        url: `/uploads/${filename}`
+      });
+    }
+  );
+});
+
+app.get('/attachments/:taskId', authenticateToken, (req, res) => {
+  const { taskId } = req.params;
+  
+  db.all(
+    'SELECT * FROM attachments WHERE task_id = ? AND user_id = ?',
+    [taskId, req.user.id],
+    (err, rows) => {
+      if (err) {
+        return res.status(500).json({ error: err.message });
+      }
+      
+      const attachments = rows.map(row => ({
+        ...row,
+        url: `/uploads/${row.filename}`
+      }));
+      
+      res.json(attachments);
+    }
+  );
+});
+
+app.delete('/attachment/:id', authenticateToken, (req, res) => {
+  const { id } = req.params;
+  
+  db.get(
+    'SELECT * FROM attachments WHERE id = ? AND user_id = ?',
+    [id, req.user.id],
+    (err, attachment) => {
+      if (err || !attachment) {
+        return res.status(404).json({ error: 'Datei nicht gefunden' });
+      }
+      
+      fs.unlink(attachment.filepath, (err) => {
+        if (err) {
+          console.error('Fehler beim Löschen der Datei:', err);
+        }
+        
+        db.run(
+          'DELETE FROM attachments WHERE id = ? AND user_id = ?',
+          [id, req.user.id],
+          function(err) {
+            if (err) {
+              return res.status(500).json({ error: err.message });
+            }
+            
+            res.json({ message: 'Datei erfolgreich gelöscht', changes: this.changes });
+          }
+        );
+      });
+    }
+  );
+});
+
+// Statische Dateien bereitstellen
+app.use('/uploads', express.static('uploads'));
 
 // -------------------------------
 // Serverstart
