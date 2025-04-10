@@ -53,6 +53,19 @@ db.serialize(() => {
       FOREIGN KEY(user_id) REFERENCES users(id)
     )
   `);
+
+  db.run(`
+    CREATE TABLE IF NOT EXISTS tasks (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      title TEXT,
+      completed BOOLEAN DEFAULT 0,
+      deadline TEXT,
+      note TEXT,
+      user_id INTEGER,
+      position INTEGER DEFAULT 0, // NEUES FELD HINZUFÜGEN
+      FOREIGN KEY(user_id) REFERENCES users(id)
+    )
+  `);
 });
 
 // -------------------------------
@@ -150,6 +163,27 @@ app.get('/me', authenticateToken, (req, res) => {
   res.json({ user: req.user });
 });
 
+// Drag and Drop
+
+app.put('/update_positions', authenticateToken, (req, res) => {
+  const { updates } = req.body;
+  const db = new sqlite3.Database('./tasks.db');
+  
+  db.serialize(() => {
+    db.run("BEGIN TRANSACTION");
+    updates.forEach(({ id, position }) => {
+      db.run("UPDATE tasks SET position = ? WHERE id = ? AND user_id = ?", 
+        [position, id, req.user.id]);
+    });
+    db.run("COMMIT", (err) => {
+      if (err) {
+        res.status(500).json({ error: err.message });
+      } else {
+        res.json({ message: 'Positionen aktualisiert' });
+      }
+    });
+  });
+});
 // -------------------------------
 // Aufgaben-Endpunkte
 // -------------------------------
