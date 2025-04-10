@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { DragDropContext, Droppable, Draggable } from 'react-beautiful-dnd';
 import './App.css';
 
 function App() {
@@ -52,6 +53,30 @@ function App() {
       }
     }
     setTaskAttachments(attachmentsMap);
+  };
+
+  const handleDragEnd = (result) => {
+    if (!result.destination) return;
+
+    const items = Array.from(tasks);
+    const [reorderedItem] = items.splice(result.source.index, 1);
+    items.splice(result.destination.index, 0, reorderedItem);
+
+    setTasks(items);
+
+    const updates = items.map((task, index) => ({
+      id: task.id,
+      position: index
+    }));
+
+    fetch("http://localhost:3050/update_positions", {
+      method: "PUT",
+      headers: { 
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${token}`
+      },
+      body: JSON.stringify({ updates })
+    }).catch(error => console.error("Fehler beim Aktualisieren der Positionen:", error));
   };
 
   const loadTasks = () => {
@@ -395,6 +420,24 @@ function App() {
         />
         <button disabled={!title.trim()} onClick={itemHinzufuegen}>Add</button>
       </div>
+
+      <DragDropContext onDragEnd={handleDragEnd}>
+        <Droppable droppableId="tasks">
+          {(provided) => (
+            <ul 
+              className="task-list" 
+              {...provided.droppableProps} 
+              ref={provided.innerRef}
+            >
+              {tasks.map((task, index) => (
+                <Draggable key={task.id} draggableId={String(task.id)} index={index}>
+                  {(provided) => (
+                    <li 
+                      ref={provided.innerRef}
+                      {...provided.draggableProps}
+                      {...provided.dragHandleProps}
+                    >
+                      <div className="drag-handle">⋮⋮</div>
 
       <ul className="task-list">
         {tasks.map((task) => (

@@ -369,3 +369,38 @@ button:hover {
   align-items: center;
   justify-content: center;
 }
+/* Drag & Drop Styles */
+.drag-handle {
+  cursor: move;
+  padding: 0 10px;
+  color: #666;
+  user-select: none;
+  margin-right: 10px;
+}
+
+.container.dark .drag-handle {
+  color: #999;
+}
+
+.task-list li {
+  transition: transform 0.2s, box-shadow 0.2s;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.container.dark .task-list li {
+  box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+}
+
+.task-list li.dragging {
+  opacity: 0.5;
+  transform: scale(0.98);
+  box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+}
+
+[data-rbd-drag-handle-context-id] {
+  cursor: grab;
+}
+
+[data-rbd-drag-handle-context-id]:active {
+  cursor: grabbing;
+}
