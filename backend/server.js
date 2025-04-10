@@ -38,6 +38,33 @@ app.delete('/delete_category/:id', (req, res) => {
     });
 });
 
+app.delete('/delete/:id', (req, res) => {
+    db.run('DELETE FROM tasks WHERE id = ?', req.params.id, (err) => {
+        if (err) {
+            res.status(400).json({ error: err.message });
+            return;
+        }
+        res.json({ message: "Eingabe gelöscht" });
+    });
+});
+
+
+
+// Aufgabe als erledigt markieren
+app.put('/update_completed/:id', (req, res) => {
+    db.run('UPDATE tasks SET completed = ? WHERE id = ?', 
+        [req.body.completed, req.params.id], 
+        function (err) {
+            if (err) {
+                res.status(400).json({ error: err.message });
+                return;
+            }
+            res.json({ message: 'Task status updated', changes: this.changes });
+        }
+    );
+});
+
+
 // Aufgaben einer bestimmten Kategorie abrufen
 app.get('/tasks/:categoryId', (req, res) => {
     db.all('SELECT * FROM tasks WHERE category_id = ?', req.params.categoryId, (err, rows) => {
@@ -45,6 +72,21 @@ app.get('/tasks/:categoryId', (req, res) => {
         else res.json(rows);
     });
 });
+
+// Notizen aendern
+app.put('/update_note/:id', (req, res) => {
+    db.run('UPDATE tasks SET note = ? WHERE id = ?', 
+        [req.body.note, req.params.id], 
+        function (err) {
+            if (err) {
+                res.status(400).json({ error: err.message });
+                return;
+            }
+            res.json({ message: 'Notiz erfolgreich aktualisiert.', changes: this.changes });
+        }
+    );
+});
+
 
 // Neue Aufgabe hinzufügen
 app.post('/add_task', (req, res) => {
@@ -55,6 +97,25 @@ app.post('/add_task', (req, res) => {
         }
     );
 });
+
+// Zähle offene und erledigte Aufgaben pro Kategorie
+app.get('/category_task_counts/:categoryId', (req, res) => {
+    db.get(
+        `SELECT 
+            SUM(CASE WHEN completed = 0 THEN 1 ELSE 0 END) AS open_tasks,
+            SUM(CASE WHEN completed = 1 THEN 1 ELSE 0 END) AS completed_tasks
+         FROM tasks WHERE category_id = ?`,
+        [req.params.categoryId],
+        (err, row) => {
+            if (err) {
+                res.status(500).json({ error: err.message });
+            } else {
+                res.json(row);
+            }
+        }
+    );
+});
+
 
 app.listen(3050, "0.0.0.0", () => {
     console.log("bald wird es Mittagspause");
