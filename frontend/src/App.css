@@ -1,171 +1,428 @@
-#root {
-  max-width: 1880px;
-  margin: 0 auto;
-  padding: 2rem;
-  text-align: center;
+/* General Styles & Theme (Basis: Projekt 1, erweitert) */
+:root {
+  /* Light Theme */
+  --bg-color: #f8f9fa;
+  --text-color: #212529;
+  --border-color: #dee2e6;
+  --card-bg: #ffffff;
+  --button-bg: #007bff;
+  --button-text: white;
+  --input-bg: #ffffff;
+  --input-border: #ced4da;
+  --link-color: #007bff;
+  --error-color: #dc3545;
+  --success-color: #28a745;
+  --completed-text: #6c757d;
+  --header-bg: #e9ecef;
+  --loading-color: #ffc107;
+  --icon-color: #555;
+  --inline-button-bg: #eee;
+  --inline-button-hover-bg: #ddd;
+  --recurring-bg: #f0faff; /* Heller Blauton für Recurring-Section */
+  --attachment-bg: #f1f3f5; /* Helles Grau für Anhänge */
+
+  /* Dark Theme Variables */
+  --dark-bg-color: #121212; /* Dunkler */
+  --dark-text-color: #e0e0e0; /* Heller */
+  --dark-border-color: #333; /* Dunklerer Border */
+  --dark-card-bg: #1e1e1e; /* Leicht heller als BG */
+  --dark-button-bg: #3b82f6; /* Helleres Blau */
+  --dark-button-text: white;
+  --dark-input-bg: #2a2a2a;
+  --dark-input-border: #444;
+  --dark-link-color: #60a5fa; /* Helleres Link-Blau */
+  --dark-error-color: #f87171; /* Helleres Rot */
+  --dark-success-color: #4ade80; /* Helleres Grün */
+  --dark-completed-text: #888;
+  --dark-header-bg: #1f2937; /* Dunkelgrau/Blau */
+  --dark-loading-color: #facc15; /* Helleres Gelb */
+  --dark-icon-color: #bbb;
+  --dark-inline-button-bg: #444;
+  --dark-inline-button-hover-bg: #555;
+  --dark-recurring-bg: #1a263a; /* Dunkelblau für Recurring */
+  --dark-attachment-bg: #3a3a3a; /* Dunkler Hintergrund für Anhänge */
 }
 
 body {
-  background-color: #ecdede;
-  color: #333;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+  margin: 0;
+  padding: 0;
+  background-color: var(--bg-color);
+  color: var(--text-color);
+  transition: background-color 0.3s, color 0.3s;
 }
 
-h1 {
-  color: #007bff;
+/* Apply dark mode styles via body class (set in App.jsx) */
+body.dark-mode {
+  background-color: var(--dark-bg-color);
+  color: var(--dark-text-color);
 }
 
-input[type="text"],
-textarea {
-  border: 1px solid #ccc;
-  background-color: #fff;
-  color: #333;
+#root {
+  max-width: 900px;
+  margin: 20px auto;
+  padding: 1rem 2rem 2rem 2rem; /* Less top padding */
+  position: relative; /* Needed for absolute positioning of theme button */
 }
 
-.completed {
-  text-decoration: line-through;
-  color: #888;
+/* Header (wie Projekt 1) */
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem 2rem;
+  margin-bottom: 1.5rem;
+  background-color: var(--header-bg);
+  border-bottom: 1px solid var(--border-color);
+  border-radius: 8px; /* Rundum */
+}
+body.dark-mode .header {
+   border-bottom-color: var(--dark-border-color);
+   background-color: var(--dark-header-bg);
+}
+.header h1 { margin: 0; font-size: 1.8em; }
+.header .user-info { display: flex; align-items: center; gap: 15px; }
+.header .username { font-style: italic; font-size: 0.9em; margin-left: 5px; }
+
+/* Theme Toggle Button */
+.theme-toggle-button {
+    position: absolute; /* Absolute position for top-right corner */
+    top: 10px; /* Adjust as needed */
+    right: 15px; /* Adjust as needed */
+    background: var(--card-bg);
+    border: 1px solid var(--border-color);
+    color: var(--text-color);
+    padding: 5px 8px;
+    border-radius: 50%; /* Circular button */
+    cursor: pointer;
+    font-size: 1.2em; /* Larger icon */
+    line-height: 1;
+    z-index: 10; /* Above other elements */
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+  
+}
+body.dark-mode .theme-toggle-button {
+    background: var(--dark-card-bg);
+    border-color: var(--dark-border-color);
+    color: var(--dark-text-color);
 }
 
-.completed-colored {
-  color: green;
+/* Buttons (Basis Projekt 1, leicht angepasst) */
+button {
+  padding: 8px 15px;
+  border: none;
+  border-radius: 4px;
+  background-color: var(--button-bg);
+  color: var(--button-text);
+  cursor: pointer;
+  transition: background-color 0.2s, opacity 0.2s;
+  font-size: 0.95em; /* Leicht kleiner */
+  margin: 2px; /* Kleiner Außenabstand */
+  vertical-align: middle; /* Align with text */
+}
+button:hover:not(:disabled) { opacity: 0.85; }
+button:disabled { background-color: #adb5bd; cursor: not-allowed; opacity: 0.7; }
+body.dark-mode button { background-color: var(--dark-button-bg); color: var(--dark-button-text); }
+body.dark-mode button:disabled { background-color: #555; color: #999; }
+
+/* Spezielle Button-Typen */
+button.link-button { /* Wie Projekt 1 */
+    background: none; border: none; color: var(--link-color); padding: 0; margin: 0 5px;
+    text-decoration: underline; cursor: pointer; font-size: 0.9em;
+}
+body.dark-mode button.link-button { color: var(--dark-link-color); }
+button.cancel-button { background-color: #6c757d; } /* Grau für Cancel */
+body.dark-mode button.cancel-button { background-color: #555; }
+button.save-button { background-color: var(--success-color); } /* Grün für Save */
+body.dark-mode button.save-button { background-color: var(--dark-success-color); color: var(--dark-bg-color); } /* Dark mode save */
+
+/* Kleine Edit/Delete Buttons (Icons) */
+button.edit-button, button.delete-button, button.delete-attachment-button {
+    background: none;
+    border: none;
+    padding: 0 5px;
+    cursor: pointer;
+    opacity: 0.7;
+    transition: opacity 0.2s;
+    vertical-align: middle; /* Align icons */
+}
+button.edit-button { font-size: 1em; color: var(--icon-color); margin-left: 8px; } /* Edit icon slightly smaller */
+button.delete-button { font-size: 1.3em; color: var(--error-color); } /* Delete Task icon */
+button.delete-attachment-button { font-size: 1em; color: var(--error-color); } /* Delete Attachment icon */
+
+body.dark-mode button.edit-button { color: var(--dark-icon-color); }
+body.dark-mode button.delete-button { color: var(--dark-error-color); }
+body.dark-mode button.delete-attachment-button { color: var(--dark-error-color); }
+
+button.edit-button:hover, button.delete-button:hover, button.delete-attachment-button:hover {
+    opacity: 1;
 }
 
-/* Farbe für NICHT erledigte Aufgaben */
-ul li {
-  border-bottom: 1px solid #eee;
-  background-color: #fff;
-  color: green;
-  list-style: none;
+/* Inputs & Forms (Basis Projekt 1) */
+input[type="text"], input[type="password"], input[type="number"],
+input[type="date"], input[type="datetime-local"], textarea, select {
+  padding: 10px; border: 1px solid var(--input-border); border-radius: 4px;
+  background-color: var(--input-bg); color: var(--text-color); /* Generelle Farben */
+  margin: 5px 0 10px 0; display: block; width: calc(100% - 22px);
+  box-sizing: border-box; font-size: 1em;
 }
 
-/* Farbe und Stil für ERLEDIGTE Aufgaben */
-.completed {
-  text-decoration: line-through;
-  color: red;
+/* Explizite Farben für input[type="date"] (Wichtig für Sichtbarkeit) */
+input[type="date"] {
+    color: var(--text-color);
+    background-color: var(--input-bg);
+    color-scheme: light; /* Für Browser-Styling im Light Mode */
 }
 
-.deadline {
-  color: #555;
+body.dark-mode input[type="text"], body.dark-mode input[type="password"],
+body.dark-mode input[type="number"],
+body.dark-mode input[type="date"], /* Gilt auch für Dark Mode */
+body.dark-mode input[type="datetime-local"], body.dark-mode textarea,
+body.dark-mode select {
+  background-color: var(--dark-input-bg); border-color: var(--dark-input-border);
+  color: var(--dark-text-color);
 }
 
-.logo {
-  height: 6em;
-  padding: 1.5em;
-  will-change: filter;
-  transition: filter 300ms;
+/* Explizite Dark Mode Farben für Datumseingabe und Browser-UI-Hint */
+body.dark-mode input[type="date"] {
+   color: var(--dark-text-color);
+   background-color: var(--dark-input-bg);
+   color-scheme: dark; /* Wichtig für Kalender-Icon etc. im Dark Mode */
 }
 
-.logo:hover {
-  filter: drop-shadow(0 0 2em #646cffaa);
+label { display: block; margin-bottom: 3px; font-weight: bold; font-size: 0.9em; }
+textarea { line-height: 1.4; resize: vertical; }
+
+/* Add Task Form & Auth Section (Basis Projekt 1) */
+.add-task-form, .auth-section {
+  background-color: var(--card-bg); padding: 1.5rem 2rem; border-radius: 8px;
+  margin-bottom: 2rem; box-shadow: 0 2px 5px rgba(0,0,0,0.08);
+}
+body.dark-mode .add-task-form, body.dark-mode .auth-section {
+    background-color: var(--dark-card-bg); box-shadow: 0 2px 6px rgba(0,0,0,0.25);
+}
+.add-task-form > div, .auth-section > div { margin-bottom: 1rem; }
+.auth-section h2 { text-align: center; margin-bottom: 1.5rem; color: var(--link-color); }
+body.dark-mode .auth-section h2 { color: var(--dark-link-color); }
+.auth-section p { margin-top: 1.5rem; text-align: center; font-size: 0.9em; }
+.auth-section form button[type="submit"] { display: block; width: 50%; margin: 1rem auto 0 auto; }
+
+
+/* --- Task Liste (Basis Projekt 1, erweitert) --- */
+.task-list-section h2 {
+    margin-top: 2rem; border-bottom: 1px solid var(--border-color);
+    padding-bottom: 0.75rem; margin-bottom: 1.5rem;
+}
+body.dark-mode .task-list-section h2 { border-bottom-color: var(--dark-border-color); }
+
+.task-list { list-style: none; padding: 0; }
+
+.task-item {
+  background-color: var(--card-bg); border: 1px solid var(--border-color);
+  border-radius: 8px; padding: 1rem 1.5rem; margin-bottom: 1rem;
+  transition: background-color 0.3s, box-shadow 0.3s; box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+}
+.task-item:hover { box-shadow: 0 3px 8px rgba(0,0,0,0.08); }
+body.dark-mode .task-item {
+  background-color: var(--dark-card-bg); border-color: var(--dark-border-color);
+  box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+}
+body.dark-mode .task-item:hover { box-shadow: 0 3px 8px rgba(0,0,0,0.3); }
+
+.task-item.completed { background-color: #e9ecef; opacity: 0.8; }
+body.dark-mode .task-item.completed { background-color: #3a3a3a; }
+.task-item.completed .task-title { text-decoration: line-through; color: var(--completed-text); }
+body.dark-mode .task-item.completed .task-title { color: var(--dark-completed-text); }
+
+.task-main { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+.task-checkbox { width: 18px; height: 18px; margin-right: 8px; cursor: pointer; accent-color: var(--button-bg); flex-shrink: 0; }
+body.dark-mode .task-checkbox { accent-color: var(--dark-button-bg); }
+.task-title { flex-grow: 1; font-weight: 500; font-size: 1.1em; word-break: break-word; }
+.task-category { /* Wie Projekt 1 */
+    font-size: 0.8em; font-style: italic; background-color: #eee; padding: 2px 6px;
+    border-radius: 10px; margin-left: 8px; white-space: nowrap; flex-shrink: 0;
+}
+body.dark-mode .task-category { background-color: #555; color: #ccc; }
+.task-recurring-icon { /* Style für Recurring Icon */
+    font-size: 0.9em; margin-left: 8px; color: var(--icon-color); cursor: help; flex-shrink: 0;
+}
+body.dark-mode .task-recurring-icon { color: var(--dark-icon-color); }
+
+
+/* Task Details & Inline Editing */
+.task-details {
+  margin-top: 15px; padding-top: 15px; border-top: 1px dashed var(--border-color);
+  font-size: 0.9em; color: #555;
+}
+body.dark-mode .task-details { border-top-color: var(--dark-border-color); color: #bbb; }
+.task-details strong { color: var(--text-color); margin-right: 5px; }
+body.dark-mode .task-details strong { color: var(--dark-text-color); }
+.task-details .detail-item { margin-bottom: 8px; display: flex; align-items: flex-start; /* Align items top */ gap: 5px; }
+.task-details .detail-value { flex-grow: 1; word-break: break-word; margin-right: 5px; } /* Erlaubt Umbruch */
+.task-details .note-value { white-space: pre-wrap; } /* Zeilenumbrüche in Notizen anzeigen */
+
+.inline-edit-container { display: flex; align-items: center; gap: 5px; flex-grow: 1; }
+.inline-edit-container input, .inline-edit-container textarea {
+    margin: 0; /* Reset margin */
+    width: auto; /* Auto width */
+    flex-grow: 1; /* Take available space */
+    font-size: 0.95em; /* Match surrounding text */
+    padding: 4px 6px; /* Smaller padding */
+}
+.inline-edit-container textarea { resize: vertical; min-height: 40px; line-height: 1.3; }
+/* Inline Edit Buttons (optional, wenn onBlur/Enter genutzt wird) */
+.inline-edit-container button { font-size: 0.9em; padding: 2px 5px; line-height: 1; }
+
+
+/* --- Kategorie Management UI (im Add Form) --- */
+.add-category-inline {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    margin-top: 5px;
+    padding-left: 10px; /* Indent slightly */
+}
+.add-category-inline input {
+    width: auto; /* Don't force full width */
+    flex-grow: 1; /* Take available space */
+    margin: 0; /* Override default margins */
+}
+.add-category-inline button {
+   font-size: 0.85em;
+   padding: 5px 8px;
 }
 
-.logo.react:hover {
-  filter: drop-shadow(0 0 2em #61dafbaa);
-}
-
-@keyframes logo-spin {
-  from {
-      transform: rotate(0deg);
-  }
-  to {
-      transform: rotate(360deg);
-  }
-}
-
-@media (prefers-reduced-motion: no-preference) {
-  a:nth-of-type(2) .logo {
-      animation: logo-spin infinite 20s linear;
-  }
-}
-
-/* Dunkles Farbschema */
-.dark-mode body {
-  background-color: #1e1e1e;
-  color: #d4d4d4;
-}
-
-.dark-mode h1 {
-  color: #6dd5ed;
-}
-
-.dark-mode input[type="text"],
-.dark-mode textarea {
-  border: 1px solid #555;
-  background-color: #333;
-  color: #d4d4d4;
-}
-
-.dark-mode button {
-  background-color: #6dd5ed;
-  color: #705555; /* Deine Farbe für Button im Dark Mode */
-}
-
-.dark-mode button:disabled {
-  background-color: #555;
-  color: #999;
-}
-
-.dark-mode ul li {
-  border-bottom: 1px solid #555;
-  background-color: #525151; /* Deine Farbe für ul li im Dark Mode */
-  color: lightgreen; /* Farbe für NICHT erledigte Aufgaben im dunklen Modus */
-}
-
-.dark-mode .completed {
-  color: #ff6961; /* Farbe für erledigte Aufgaben im dunklen Modus (helleres Rot) */
-}
-
-.dark-mode ul li.completed {
-  color: #e2d1d1; /* Deine Farbe für erledigte ul li im Dark Mode */
-}
-
-.dark-mode .deadline {
-  color: #838383; /* Deine Farbe für Deadline im Dark Mode */
-}
-
-.read-the-docs {
-  color: #888;
-}
-
-ul {
-  list-style: none;
-}
+/* --- Recurring Task Options (im Add Form, aus Projekt 2) --- */
+.recurring-checkbox { margin-bottom: 10px; }
+.recurring-checkbox label { font-weight: normal; display: inline-flex; align-items: center; gap: 5px; cursor: pointer; }
 
 .recurring-options {
-  margin-top: 10px;
-  padding: 10px;
-  border: 1px solid #ccc;
-  border-radius: 5px;
-  background-color: #f9f9f9;
-  display: flex;
-  flex-direction: column;
-  gap: 5px;
+  margin-top: 10px; margin-bottom: 15px; padding: 15px;
+  border: 1px solid var(--border-color); border-radius: 5px;
+  background-color: var(--recurring-bg);
+  display: flex; flex-direction: column; gap: 12px; /* Mehr Abstand */
 }
-
-.recurring-options label {
-  display: flex;
-  gap: 10px;
-  align-items: center;
+body.dark-mode .recurring-options {
+  border-color: var(--dark-border-color); background-color: var(--dark-recurring-bg);
 }
-
+.recurring-options h4 { margin: 0 0 10px 0; font-size: 1em; }
+.recurring-options label { display: flex; gap: 10px; align-items: center; font-weight: normal; font-size: 0.9em; }
+.recurring-options label > span { flex-shrink: 0; width: 70px; /* Align labels */ text-align: right;}
 .recurring-options input[type="number"],
 .recurring-options input[type="date"],
 .recurring-options select {
-  padding: 5px;
-  border: 1px solid #ddd;
-  border-radius: 3px;
+  padding: 6px 8px; /* Slightly more padding */
+  border: 1px solid var(--input-border); /* Use theme border */
+  border-radius: 3px; margin: 0; /* Override default */
+  width: auto; /* Auto width */
+  flex-grow: 1; /* Take space in label */
+}
+body.dark-mode .recurring-options input[type="number"],
+body.dark-mode .recurring-options input[type="date"],
+body.dark-mode .recurring-options select {
+  border-color: var(--dark-input-border); background-color: var(--dark-input-bg);
+  color: var(--dark-text-color);
 }
 
-.dark-mode .recurring-options {
-  border-color: #555;
-  background-color: #333;
-  color: #d4d4d4;
+/* Anhang Bereich (Basis Projekt 1) */
+.task-attachments { margin-top: 15px; }
+.task-attachments h4 { margin-bottom: 10px; font-size: 1em; color: var(--text-color); font-weight: bold; }
+body.dark-mode .task-attachments h4 { color: var(--dark-text-color); }
+.no-attachments { font-style: italic; color: #888; font-size: 0.9em; }
+body.dark-mode .no-attachments { color: #aaa; }
+.attachment-list { list-style: none; padding: 0; margin: 10px 0; display: flex; flex-wrap: wrap; gap: 10px; }
+.attachment-item { /* Wie Projekt 1 */
+  display: flex; align-items: center; gap: 8px; padding: 6px 10px; border: 1px solid var(--border-color);
+  border-radius: 4px; background-color: var(--attachment-bg); font-size: 0.9em;
+  max-width: calc(50% - 10px); box-sizing: border-box;
+}
+body.dark-mode .attachment-item { background-color: var(--dark-attachment-bg); border-color: var(--dark-border-color); }
+.attachment-thumbnail { /* Wie Projekt 1 */
+  width: 35px; height: 35px; object-fit: cover; cursor: pointer; border: 1px solid #ccc; border-radius: 3px; flex-shrink: 0;
+}
+body.dark-mode .attachment-thumbnail { border-color: #555; }
+.file-icon, .pdf-icon { font-size: 1.5em; line-height: 1; color: var(--icon-color); flex-shrink: 0;}
+body.dark-mode .file-icon, body.dark-mode .pdf-icon { color: var(--dark-icon-color); }
+.attachment-link { /* Wie Projekt 1 */
+  color: var(--link-color); text-decoration: none; white-space: nowrap; overflow: hidden;
+  text-overflow: ellipsis; flex-grow: 1; margin-right: 5px;
+}
+body.dark-mode .attachment-link { color: var(--dark-link-color); }
+.attachment-link:hover { text-decoration: underline; }
+
+.add-attachment-section { margin-top: 10px; }
+/* Styling für den Button, der das Label ersetzt */
+.add-attachment-section label > button {
+    /* Hier können Styles für den Button stehen, wenn nötig */
+    /* Beispiel: */
+     font-size: 0.85em;
+     padding: 5px 10px;
+     background-color: var(--inline-button-bg); /* Beispiel: Heller Hintergrund */
+     color: var(--text-color); /* Beispiel: Normale Textfarbe */
+     border: 1px solid var(--border-color);
+}
+body.dark-mode .add-attachment-section label > button {
+    background-color: var(--dark-inline-button-bg);
+    color: var(--dark-text-color);
+    border-color: var(--dark-border-color);
 }
 
-.dark-mode .recurring-options input[type="number"],
-.dark-mode .recurring-options input[type="date"],
-.dark-mode .recurring-options select {
-  border-color: #777;
-  background-color: #444;
-  color: #d4d4d4;
+
+.upload-indicator { /* Wie Projekt 1 */
+    font-size: 0.85em; margin-left: 10px; font-style: italic; color: var(--text-color);
+}
+body.dark-mode .upload-indicator { color: var(--dark-text-color); }
+
+
+/* Bild Modal (aus Projekt 1) */
+.image-modal-overlay { /* Wie Projekt 1 */
+  position: fixed; top: 0; left: 0; right: 0; bottom: 0; background-color: rgba(0, 0, 0, 0.8);
+  z-index: 1000; display: flex; justify-content: center; align-items: center; padding: 20px;
+}
+.image-modal { /* Wie Projekt 1 */
+  background: var(--card-bg); padding: 15px; border-radius: 8px; max-width: 90vw; max-height: 90vh;
+  overflow: hidden; position: relative; outline: none; box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+  display: flex; flex-direction: column; align-items: center;
+}
+body.dark-mode .image-modal { background: var(--dark-card-bg); }
+.image-modal img { /* Wie Projekt 1 */
+  display: block; max-width: 100%; max-height: calc(90vh - 70px); object-fit: contain;
+}
+.close-modal-button { /* Wie Projekt 1 */
+  position: absolute; top: 10px; right: 10px; background: rgba(0, 0, 0, 0.5); color: white;
+  border: none; border-radius: 50%; cursor: pointer; font-size: 1.1em; font-weight: bold;
+  line-height: 1; padding: 6px 10px; z-index: 1001;
+}
+body.dark-mode .close-modal-button { background: rgba(255, 255, 255, 0.3); color: var(--dark-text-color); }
+.close-modal-button:hover { background: rgba(0, 0, 0, 0.8); }
+body.dark-mode .close-modal-button:hover { background: rgba(255, 255, 255, 0.5); }
+
+
+/* Error & Loading Messages (aus Projekt 1, sicherstellen Sichtbarkeit) */
+.error-message, .loading-message {
+    color: white; padding: 12px 18px; border-radius: 4px; margin-bottom: 1.5rem;
+    text-align: center; font-weight: 500;
+    z-index: 5; /* Sicherstellen, dass es über normalem Content liegt */
+    position: relative; /* Damit z-index wirkt */
+}
+.error-message { background-color: var(--error-color); }
+.loading-message { background-color: var(--loading-color); color: #333; }
+body.dark-mode .error-message { background-color: var(--dark-error-color); color: var(--dark-text-color); }
+body.dark-mode .loading-message { background-color: var(--dark-loading-color); color: var(--dark-bg-color); }
+
+
+/* Kleine Anpassungen */
+.app-loading { opacity: 0.8; } /* Leichte Transparenz während des Ladens */
+
+/* Media Queries (optional für Responsivität) */
+@media (max-width: 600px) {
+    #root { padding: 1rem; }
+    .header { flex-direction: column; gap: 10px; padding: 1rem; text-align: center;}
+    .header h1 { font-size: 1.5em; }
+    .theme-toggle-button { top: 5px; right: 5px; font-size: 1em; padding: 4px 6px;}
+    .add-task-form, .auth-section { padding: 1rem; }
+    .task-item { padding: 0.8rem 1rem; }
+    .attachment-item { max-width: 100%; } /* Ein Anhang pro Zeile */
+    .recurring-options label { flex-direction: column; align-items: flex-start; }
+    .recurring-options label > span { width: auto; text-align: left; margin-bottom: 3px;}
 }
