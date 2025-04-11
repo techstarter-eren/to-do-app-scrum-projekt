@@ -4,69 +4,54 @@ const bodyParser = require('body-parser');
 const cors = require('cors');
 
 const app = express();
-
-// Verbindung zur Datenbank
 const db = new sqlite3.Database('./tasks.db');
-
-// Spalten hinzufügen, falls sie noch nicht existieren
-db.run('ALTER TABLE tasks ADD COLUMN deadline TEXT', (err) => {
-    if (err) {
-        console.log("Die Spalte 'deadline' existiert möglicherweise bereits:", err.message);
-    } else {
-        console.log("Spalte 'deadline' erfolgreich hinzugefügt.");
-    }
-});
-
-db.run('ALTER TABLE tasks ADD COLUMN note TEXT', (err) => {
-    if (err) {
-        console.log("Die Spalte 'note' existiert möglicherweise bereits:", err.message);
-    } else {
-        console.log("Spalte 'note' erfolgreich hinzugefügt.");
-    }
-});
 
 app.use(cors());
 app.use(bodyParser.json());
 
-// Tabelle erstellen, falls sie nicht existiert
-db.run('CREATE TABLE IF NOT EXISTS tasks (id INTEGER PRIMARY KEY AUTOINCREMENT, title TEXT, completed BOOLEAN DEFAULT 0, deadline TEXT, note TEXT)');
+// Kategorien-Tabelle erstellen, falls sie nicht existiert
+db.run('CREATE TABLE IF NOT EXISTS categories (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT)');
 
-// Requests und Responses
-app.get('/', (req, res) => {
-    res.send('genau');
-});
+// Aufgaben-Tabelle mit Kategorie-Feld aktualisieren
+db.run('CREATE TABLE IF NOT EXISTS tasks (id INTEGER PRIMARY KEY AUTOINCREMENT, title TEXT, completed BOOLEAN DEFAULT 0, deadline TEXT, note TEXT, category_id INTEGER, FOREIGN KEY(category_id) REFERENCES categories(id))');
 
-app.get('/lachs_suschi', (req, res) => {
-    res.send("hier ist ein leckeres Lachs Sushi!");
-});
-
-app.get('/ralf', (req, res) => {
-    res.send('vielen Dank Ralf');
-});
-
-// Neues Item hinzufügen (inkl. completed, deadline und note)
-app.post('/add', (req, res) => {
-    db.run('INSERT INTO tasks (title, completed, deadline, note) VALUES (?, ?, ?, ?)', 
-        [req.body.title, req.body.completed || 0, req.body.deadline || null, null], 
-        function () {
-            res.json({ id: this.lastID, title: req.body.title, completed: req.body.completed || 0, deadline: req.body.deadline || null, note: null });
-        }
-    );
-});
-
-// Alle Items abrufen
-app.get('/liste_abrufen', (req, res) => {
-    db.all('SELECT * FROM tasks', (err, rows) => {
-        if (err) {
-            res.status(500).json({ error: err.message });
-            return;
-        }
-        res.json(rows);
+// Kategorien abrufen
+app.get('/categories', (req, res) => {
+    db.all('SELECT * FROM categories', (err, rows) => {
+        if (err) res.status(500).json({ error: err.message });
+        else res.json(rows);
     });
 });
 
+// Kategorie hinzufügen
+app.post('/add_category', (req, res) => {
+    db.run('INSERT INTO categories (name) VALUES (?)', [req.body.name], function () {
+        res.json({ id: this.lastID, name: req.body.name });
+    });
+});
+
+// Kategorie löschen
+app.delete('/delete_category/:id', (req, res) => {
+    db.run('DELETE FROM categories WHERE id = ?', req.params.id, function (err) {
+        if (err) res.status(400).json({ error: err.message });
+        else res.json({ message: "Kategorie gelöscht" });
+    });
+});
+
+app.delete('/delete/:id', (req, res) => {
+    db.run('DELETE FROM tasks WHERE id = ?', req.params.id, (err) => {
+        if (err) {
+            res.status(400).json({ error: err.message });
+            return;
+        }
+        res.json({ message: "Eingabe gelöscht" });
+    });
+});
+
+
+
 // Aufgabe als erledigt markieren
-app.put('/update/:id', (req, res) => {
+app.put('/update_completed/:id', (req, res) => {
     db.run('UPDATE tasks SET completed = ? WHERE id = ?', 
         [req.body.completed, req.params.id], 
         function (err) {
@@ -74,26 +59,21 @@ app.put('/update/:id', (req, res) => {
                 res.status(400).json({ error: err.message });
                 return;
             }
-            res.json({ message: 'Task updated', changes: this.changes });
+            res.json({ message: 'Task status updated', changes: this.changes });
         }
     );
 });
 
-// Deadline aktualisieren
-app.put('/update_deadline/:id', (req, res) => {
-    db.run('UPDATE tasks SET deadline = ? WHERE id = ?', 
-        [req.body.deadline, req.params.id], 
-        function (err) {
-            if (err) {
-                res.status(400).json({ error: err.message });
-                return;
-            }
-            res.json({ message: 'Deadline updated', changes: this.changes });
-        }
-    );
+
+// Aufgaben einer bestimmten Kategorie abrufen
+app.get('/tasks/:categoryId', (req, res) => {
+    db.all('SELECT * FROM tasks WHERE category_id = ?', req.params.categoryId, (err, rows) => {
+        if (err) res.status(500).json({ error: err.message });
+        else res.json(rows);
+    });
 });
 
-// Notiz aktualisieren
+// Notizen aendern
 app.put('/update_note/:id', (req, res) => {
     db.run('UPDATE tasks SET note = ? WHERE id = ?', 
         [req.body.note, req.params.id], 
@@ -107,16 +87,35 @@ app.put('/update_note/:id', (req, res) => {
     );
 });
 
-// Item löschen
-app.delete('/delete/:id', (req, res) => {
-    db.run('DELETE FROM tasks WHERE id = ?', req.params.id, (err) => {
-        if (err) {
-            res.status(400).json({ error: err.message });
-            return;
+
+// Neue Aufgabe hinzufügen
+app.post('/add_task', (req, res) => {
+    db.run('INSERT INTO tasks (title, completed, deadline, note, category_id) VALUES (?, ?, ?, ?, ?)',
+        [req.body.title, req.body.completed || 0, req.body.deadline || null, req.body.note || null, req.body.category_id], 
+        function () {
+            res.json({ id: this.lastID, title: req.body.title, completed: req.body.completed || 0, deadline: req.body.deadline || null, note: req.body.note || null, category_id: req.body.category_id });
         }
-        res.json({ message: "Eingabe gelöscht" });
-    });
+    );
 });
+
+// Zähle offene und erledigte Aufgaben pro Kategorie
+app.get('/category_task_counts/:categoryId', (req, res) => {
+    db.get(
+        `SELECT 
+            SUM(CASE WHEN completed = 0 THEN 1 ELSE 0 END) AS open_tasks,
+            SUM(CASE WHEN completed = 1 THEN 1 ELSE 0 END) AS completed_tasks
+         FROM tasks WHERE category_id = ?`,
+        [req.params.categoryId],
+        (err, row) => {
+            if (err) {
+                res.status(500).json({ error: err.message });
+            } else {
+                res.json(row);
+            }
+        }
+    );
+});
+
 
 app.listen(3050, "0.0.0.0", () => {
     console.log("bald wird es Mittagspause");
