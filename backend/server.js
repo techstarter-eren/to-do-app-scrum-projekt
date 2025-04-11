@@ -38,8 +38,9 @@ db.serialize(() => {
       deadline TEXT,
       note TEXT,
       user_id INTEGER,
+      category_id INTEGER,
       FOREIGN KEY(user_id) REFERENCES users(id),
-      category_id INTEGER, FOREIGN KEY(category_id) REFERENCES categories(id))'
+      FOREIGN KEY(category_id) REFERENCES categories(id)
     )
   `);
 
