@@ -2,6 +2,10 @@ import { useEffect, useState } from 'react';
 import './App.css';
 
 function App() {
+  
+  // -------------------------------
+  // State Management
+  // -------------------------------
   const [categories, setCategories] = useState([]);
   const [selectedCategory, setSelectedCategory] = useState(null);
   const [tasks, setTasks] = useState([]);
@@ -9,7 +13,16 @@ function App() {
   const [note, setNote] = useState("");
   const [deadline, setDeadline] = useState("");
   const [darkMode, setDarkMode] = useState(false);
+  const [user, setUser] = useState(null);
+  const [token, setToken] = useState(localStorage.getItem('token'));
+  const [authView, setAuthView] = useState('login');
+  const [authError, setAuthError] = useState("");
+  const [authData, setAuthData] = useState({
+    username: "",
+    password: ""
+  });
   const [newCategoryName, setNewCategoryName] = useState("");
+
 
   useEffect(() => {
     document.body.className = darkMode ? 'dark-mode' : '';
@@ -53,9 +66,10 @@ function App() {
     // Die leere Abhängigkeitsliste [] sorgt dafür, dass dieser Effekt nur beim ersten Rendern läuft.
   }, []); 
   useEffect(() => {
-    if (selectedCategory) {
-      fetch(`http://localhost:3050/tasks/${selectedCategory}`)
-        .then((res) => res.json())
+    if (token) {
+      fetch("http://localhost:3050/" , {
+      headers: { 'Authorization': `Bearer ${token}` }
+    }).then((res) => res.json())
         .then(setTasks)
         .catch((error) => console.error("Fehler beim Laden der Aufgaben:", error));
     } else {
@@ -63,7 +77,62 @@ function App() {
         setTasks([]);
     }
   }, [selectedCategory]);
+  };
 
+  const handleAuthChange = (e) => {
+    setAuthData({
+      ...authData,
+      [e.target.name]: e.target.value
+    });
+  };
+
+  const register = async (e) => {
+    e.preventDefault();
+    try {
+      const response = await fetch("http://localhost:3050/register", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(authData),
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || 'Registrierung fehlgeschlagen');
+      setAuthView('login');
+      setAuthError("");
+    } catch (error) {
+      setAuthError(error.message);
+    }
+  };
+
+  const login = async (e) => {
+    e.preventDefault();
+    try {
+      const response = await fetch("http://localhost:3050/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(authData),
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || 'Login fehlgeschlagen');
+      
+      localStorage.setItem('token', data.token);
+      setToken(data.token);
+      setUser({ username: data.username });
+      setAuthError("");
+    } catch (error) {
+      setAuthError(error.message);
+    }
+  };
+
+  const logout = () => {
+    localStorage.removeItem('token');
+    setToken(null);
+    setUser(null);
+    setTasks([]);
+  };
+
+  // -------------------------------
+  // Aufgabenverwaltung
+  // -------------------------------
   const itemHinzufuegen = () => {
     if (!title.trim() || !selectedCategory) {
       return;
@@ -71,8 +140,11 @@ function App() {
 
     fetch("http://localhost:3050/add_task", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ title, completed: false, deadline, note, category_id: selectedCategory }),
+      headers: { 
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${token}`
+      },
+      body: JSON.stringify({ title, completed: false, deadline: deadline || null }),
     })
       .then((res) => res.json())
       .then((neueAufgabe) => {
@@ -100,7 +172,7 @@ function App() {
     try {
         const res = await fetch("http://localhost:3050/add_category", {
             method: "POST",
-            headers: { "Content-Type": "application/json" },
+            headers: { "Content-Type": "application/json", 'Authorization': `Bearer ${token}`  },
             body: JSON.stringify({ name: newCategoryName }),
         });
         const neueKategorie = await res.json(); // Annahme: Backend gibt { id: ..., name: ... } zurück
@@ -145,7 +217,7 @@ function App() {
 
     try {
         // Sende die Löschanfrage an das Backend
-        const response = await fetch(`http://localhost:3050/delete_category/${id}`, { method: "DELETE" });
+        const response = await fetch(`http://localhost:3050/delete_category/${id}`, { method: "DELETE", headers: { 'Authorization': `Bearer ${token}` } });
 
         // Fehlerbehandlung mit Rollback für die UI
         if (!response.ok) {
@@ -201,7 +273,7 @@ function App() {
     // Sende Update an das Backend
     fetch(`http://localhost:3050/update_completed/${id}`, {
         method: "PUT",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", 'Authorization': `Bearer ${token}` },
         body: JSON.stringify({ completed: newCompletedStatus }),
     })
     .then(response => {
@@ -243,92 +315,14 @@ function App() {
     });
   };
 
-  const itemLoeschen = (id) => {
-    // Finde den Task, *bevor* er aus dem State entfernt wird (für Count-Update & Rollback)
-    const taskToDelete = tasks.find(task => task.id === id);
-    if (!taskToDelete) {
-        console.warn("Zu löschender Task nicht im State gefunden:", id);
-        return; // Task nicht da, nichts zu tun
-    }
-
-    // Optimistic UI Update für Task
-    setTasks((prevTasks) => prevTasks.filter(task => task.id !== id));
-
-    // Aktualisiere die Counts der Kategorie (Optimistic Update)
-    setCategories((prevCategories) =>
-        prevCategories.map(cat => {
-            if (cat.id === selectedCategory) {
-                const openAdjustment = taskToDelete.completed ? 0 : -1; // Wenn offen gelöscht: -1 offen
-                const completedAdjustment = taskToDelete.completed ? -1 : 0; // Wenn erledigt gelöscht: -1 erledigt
-                return {
-                    ...cat,
-                    counts: {
-                        open_tasks: (cat.counts?.open_tasks ?? 0) + openAdjustment,
-                        completed_tasks: (cat.counts?.completed_tasks ?? 0) + completedAdjustment
-                    }
-                };
-            }
-            return cat;
-        })
-    );
-
-    // Sende Löschanfrage an das Backend
-    fetch(`http://localhost:3050/delete/${id}`, {
-        method: "DELETE",
-    })
-    .then(response => {
-        // Fehlerbehandlung mit Rollback ***
-        if (!response.ok) {
-            console.error("Fehler beim Löschen des Tasks auf dem Server. Status:", response.status);
-            // Rollback Task: Füge ihn wieder hinzu
-            setTasks((prevTasks) => [...prevTasks, taskToDelete].sort((a, b) => a.id - b.id)); // Sortierung optional
-            // Rollback Counts
-            setCategories((prevCategories) =>
-                prevCategories.map(cat => {
-                    if (cat.id === selectedCategory) {
-                         // Kehre die Anpassungen um
-                        const openAdjustment = taskToDelete.completed ? 0 : 1;
-                        const completedAdjustment = taskToDelete.completed ? 1 : 0;
-                        return {
-                            ...cat,
-                            counts: {
-                                open_tasks: (cat.counts?.open_tasks ?? 0) + openAdjustment,
-                                completed_tasks: (cat.counts?.completed_tasks ?? 0) + completedAdjustment
-                            }
-                        };
-                    }
-                    return cat;
-                })
-            );
-            throw new Error('Server-Fehler beim Löschen des Tasks');
-        }
-        // Bei Erfolg: UI ist bereits aktuell.
-    })
-    .catch((error) => {
-        console.error("Fehler beim Löschen einer Aufgabe (Fetch oder Server):", error);
-        // Rollback ist oben passiert oder Fetch fehlgeschlagen
-        // Optional: Fehlermeldung
-    });
-  };
-
-
-  const notizAktualisieren = (id, note) => {
-    // Kein Count-Update nötig, nur Task-State anpassen
-    const originalTask = tasks.find(t => t.id === id); // Finde den Task für Rollback
-    const originalNote = originalTask?.note;
-
-    // Optimistic UI Update
-     setTasks((prevTasks) =>
-        prevTasks.map(task =>
-            task.id === id ? { ...task, note } : task
-        )
-    );
-
-    // Sende Update an Backend (eventuell mit Debounce in einer echten App)
-    fetch(`http://localhost:3050/update_note/${id}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ note }),
+  const notizAktualisieren = (id_nummer, note) => {
+    fetch(`http://localhost:3050/update_note/${id_nummer}`, {
+      method: "PUT",
+      headers: { 
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${token}`
+      },
+      body: JSON.stringify({ note }),
     })
     .then(response => {
          // Fehlerbehandlung mit Rollback
@@ -350,7 +344,6 @@ function App() {
         // Optional: Fehlermeldung
     });
   };
-
 
   return (
     // Das JSX bleibt unverändert, da die Logikänderungen das Problem beheben sollten.
@@ -472,6 +465,6 @@ function App() {
       )}
     </div>
   );
-}
+
 
 export default App;
