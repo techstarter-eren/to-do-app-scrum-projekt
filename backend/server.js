@@ -12,62 +12,22 @@ const SECRET_KEY = 'Ihr_Geheimer_Schluessel';
 // Datenbankinitialisierung
 // -------------------------------
 const db = new sqlite3.Database('./tasks.db');
-
-// Tabellen erstellen
-db.serialize(() => {
-  db.run(`
-    CREATE TABLE IF NOT EXISTS categories (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    name TEXT)
-  `);
-
-  db.run(`
-    CREATE TABLE IF NOT EXISTS users (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      username TEXT UNIQUE NOT NULL,
-      password TEXT NOT NULL,
-      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-    )
-  `);
-
-  db.run(`
-    CREATE TABLE IF NOT EXISTS tasks (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      title TEXT,
-      completed BOOLEAN DEFAULT 0,
-      deadline TEXT,
-      note TEXT,
-      user_id INTEGER,
-      category_id INTEGER,
-      FOREIGN KEY(user_id) REFERENCES users(id),
-      FOREIGN KEY(category_id) REFERENCES categories(id)
-    )
-  `);
-
-  
+db.run('ALTER TABLE tasks ADD COLUMN deadline TEXT', (err) => {
+    if (err) {
+        console.log("Die Spalte 'deadline' existiert möglicherweise bereits:", err.message);
+    } else {
+        console.log("Spalte 'deadline' erfolgreich hinzugefügt.");
+    }
 });
 
 app.use(cors());
 app.use(bodyParser.json());
 
-// -------------------------------
-// Authentifizierungs-Middleware
-// -------------------------------
-function authenticateToken(req, res, next) {
-  const authHeader = req.headers['authorization'];
-  const token = authHeader && authHeader.split(' ')[1];
-  
-  if (!token) return res.sendStatus(401);
-  
-  jwt.verify(token, SECRET_KEY, (err, user) => {
-    if (err) return res.sendStatus(403);
-    req.user = user;
-    next();
-  });
-}
-
+// Tabelle erstellen, falls sie nicht existiert
+db.run('CREATE TABLE IF NOT EXISTS tasks (id INTEGER PRIMARY KEY AUTOINCREMENT, title TEXT, completed BOOLEAN DEFAULT 0)');
 
 // Requests und Responses
+
 app.get('/', (req, res) => {
     res.send('genau');
 });
@@ -80,12 +40,12 @@ app.get('/ralf', (req, res) => {
     res.send('vielen Dank Ralf');
 });
 
-// Neues Item hinzufügen (inkl. completed, deadline und note)
+// Neues Item hinzufügen (inkl. completed und deadline)
 app.post('/add', (req, res) => {
-    db.run('INSERT INTO tasks (title, completed, deadline, note) VALUES (?, ?, ?, ?)', 
-        [req.body.title, req.body.completed || 0, req.body.deadline || null, null], 
+    db.run('INSERT INTO tasks (title, completed, deadline) VALUES (?, ?, ?)', 
+        [req.body.title, req.body.completed || 0, req.body.deadline || null], 
         function () {
-            res.json({ id: this.lastID, title: req.body.title, completed: req.body.completed || 0, deadline: req.body.deadline || null, note: null });
+            res.json({ id: this.lastID, title: req.body.title, completed: req.body.completed || 0, deadline: req.body.deadline || null });
         }
     );
 });
@@ -108,9 +68,31 @@ app.post('/add_task', (req, res) => {
     );
 });
 
-// -------------------------------
-// Serverstart
-// -------------------------------
+// Deadline aktualisieren
+app.put('/update_deadline/:id', (req, res) => {
+    db.run('UPDATE tasks SET deadline = ? WHERE id = ?', 
+        [req.body.deadline, req.params.id], 
+        function (err) {
+            if (err) {
+                res.status(400).json({ error: err.message });
+                return;
+            }
+            res.json({ message: 'Deadline updated', changes: this.changes });
+        }
+    );
+});
+
+// Item löschen
+app.delete('/delete/:id', (req, res) => {
+    db.run('DELETE FROM tasks WHERE id = ?', req.params.id, (err) => {
+        if (err) {
+            res.status(400).json({ error: err.message });
+            return;
+        }
+        res.json({ message: "Eingabe gelöscht" });
+    });
+});
+
 app.listen(3050, "0.0.0.0", () => {
   console.log("Server läuft auf Port 3050");
 });

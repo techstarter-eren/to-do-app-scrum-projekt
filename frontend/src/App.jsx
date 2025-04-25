@@ -13,17 +13,9 @@ function App() {
   const [note, setNote] = useState("");
   const [deadline, setDeadline] = useState("");
   const [darkMode, setDarkMode] = useState(false);
-  const [user, setUser] = useState(null);
-  const [token, setToken] = useState(localStorage.getItem('token'));
-  const [authView, setAuthView] = useState('login');
-  const [authError, setAuthError] = useState("");
-  const [authData, setAuthData] = useState({
-    username: "",
-    password: ""
-  });
-  const [newCategoryName, setNewCategoryName] = useState("");
+  const [deadline, setDeadline] = useState("");
 
-
+  // Dark Mode initialisieren
   useEffect(() => {
     document.body.className = darkMode ? 'dark-mode' : '';
   }, [darkMode]);
@@ -235,73 +227,14 @@ function App() {
         headers: { "Content-Type": "application/json", 'Authorization': `Bearer ${token}` },
         body: JSON.stringify({ completed: newCompletedStatus }),
     })
-    .then(response => {
-        // *** NEUE ÄNDERUNG: Fehlerbehandlung mit Rollback ***
-        if (!response.ok) {
-            console.error("Fehler beim Aktualisieren des Status auf dem Server. Status:", response.status);
-            // Rollback Task Status
-            setTasks((prevTasks) =>
-                prevTasks.map(task =>
-                    task.id === id ? { ...task, completed: completed } : task // Zurück zum alten Status
-                )
-            );
-            // Rollback Category Counts
-            setCategories((prevCategories) =>
-                prevCategories.map(cat => {
-                    if (cat.id === selectedCategory) {
-                        // Kehre die Anpassungen um
-                        const openAdjustment = newCompletedStatus ? 1 : -1;
-                        const completedAdjustment = newCompletedStatus ? -1 : 1;
-                        return {
-                            ...cat,
-                            counts: {
-                                open_tasks: (cat.counts?.open_tasks ?? 0) + openAdjustment,
-                                completed_tasks: (cat.counts?.completed_tasks ?? 0) + completedAdjustment
-                            }
-                        };
-                    }
-                    return cat;
-                })
-            );
-             throw new Error('Server-Fehler beim Aktualisieren des Task-Status');
-        }
-        // Bei Erfolg: Nichts zu tun, die UI wurde bereits optimistisch aktualisiert.
-    })
-    .catch((error) => {
-        console.error("Fehler beim Aktualisieren des Status (Fetch oder Server):", error);
-        // Hier ist der Rollback schon passiert oder der Fetch schlug fehl
-        // Optional: Fehlermeldung für den Benutzer
-    });
-  };
-
-  const notizAktualisieren = (id_nummer, note) => {
-    fetch(`http://localhost:3050/update_note/${id_nummer}`, {
-      method: "PUT",
-      headers: { 
-        "Content-Type": "application/json",
-        "Authorization": `Bearer ${token}`
-      },
-      body: JSON.stringify({ note }),
-    })
-    .then(response => {
-         // Fehlerbehandlung mit Rollback
-         if (!response.ok) {
-             console.error("Fehler beim Aktualisieren der Notiz auf dem Server. Status:", response.status);
-             // Rollback Note
-             setTasks((prevTasks) =>
-                prevTasks.map(task =>
-                    task.id === id ? { ...task, note: originalNote } : task // Zurück zur alten Notiz
-                )
-            );
-            throw new Error('Server-Fehler beim Aktualisieren der Notiz');
-         }
-         // Bei Erfolg: UI ist aktuell.
-    })
-    .catch((error) => {
-        console.error("Fehler beim Aktualisieren der Notiz (Fetch oder Server):", error);
-        // Rollback ist oben passiert oder Fetch fehlgeschlagen
-        // Optional: Fehlermeldung
-    });
+      .then(() => {
+        setTasks((prevTasks) =>
+          prevTasks.map(task =>
+            task.id === id_nummer ? { ...task, completed: !completed } : task
+          )
+        );
+      })
+      .catch((error) => console.error("Fehler beim Aktualisieren des Status:", error));
   };
 
 =======
@@ -344,24 +277,26 @@ function App() {
         )}
       </div>
 
-      {selectedCategory && (
-        <>
-          <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Neue Aufgabe..." />
-          <input type="datetime-local" value={deadline} onChange={(e) => setDeadline(e.target.value)} placeholder="Deadline festlegen" />
-          <textarea value={note} onChange={(e) => setNote(e.target.value)} placeholder="Notiz hinzufügen..." />
-          <button disabled={!title.trim()} onClick={itemHinzufuegen}>Add</button>
-
-          <ul className="task-list">
-            {tasks.map(({ id, title, completed, deadline, note }) => (
-              <li key={id}>
-                <span className={`task-text ${completed ? 'completed' : 'pending'}`}>{title}</span>
-                <p>Deadline: {deadline ? new Date(deadline).toLocaleString() : "Keine"}</p>
-                <textarea value={note || ""} onChange={(e) => setNote(e.target.value)} placeholder="Notiz bearbeiten..."></textarea>
-              </li>
-            ))}
-          </ul>
-        </>
-      )}
+      <ul className="task-list">
+        {tasks.map(({ id, title, completed, deadline }) => (
+          <li key={id}>
+            <input type='checkbox' checked={completed} onChange={() => taskStatusAktualisieren(id, completed)} />
+            <span 
+              className={`task-text ${completed ? 'completed' : 'pending'}`}
+              style={{
+                color: completed ? '#006400' : '#8B0000', // Dunkelgrün für erledigt, Dunkelrot für ausstehend
+                fontWeight: 'bold'
+              }}
+            >
+              {title}
+            </span> 
+            <em style={{ marginLeft: '10px' }}>
+              Deadline: {deadline ? new Date(deadline).toLocaleString() : "Keine"}
+            </em>
+            <button onClick={() => itemLoeschen(id)}>X</button>
+          </li>
+        ))}
+      </ul>
     </div>
   );
 
