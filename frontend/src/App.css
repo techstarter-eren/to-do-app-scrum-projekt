@@ -44,21 +44,3 @@
 ul{
   list-style:none;
   }
-  /* Standard-Farben (Light Mode) */
-.task-text.pending {
-  color: #971313; /* Dunkelrot */
-}
-
-.task-text.completed {
-  color: #0a680a; /* Dunkelgrün */
-  text-decoration: line-through;
-}
-
-/* Dark Mode Anpassungen */
-.container.dark .task-text.pending {
-  color: #ec3030 !important; /* Helleres Rot für Dark Mode */
-}
-
-.container.dark .task-text.completed {
-  color: #46e964 !important; /* Helleres Grün für Dark Mode */
-}
