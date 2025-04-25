@@ -90,74 +90,23 @@ app.post('/add', (req, res) => {
     );
 });
 
-// -------------------------------
-// Aufgaben-Endpunkte
-// -------------------------------
-app.get('/liste_abrufen', authenticateToken, (req, res) => {
-  db.all('SELECT * FROM tasks WHERE user_id = ?', [req.user.id], (err, rows) => {
-    if (err) {
-      res.status(500).json({ error: err.message });
-      return;
-    }
-    res.json(rows);
-  });
+// Aufgaben einer bestimmten Kategorie abrufen
+app.get('/tasks/:categoryId', (req, res) => {
+    db.all('SELECT * FROM tasks WHERE category_id = ?', req.params.categoryId, (err, rows) => {
+        if (err) res.status(500).json({ error: err.message });
+        else res.json(rows);
+    });
 });
 
-
-
-app.post('/add', authenticateToken, (req, res) => {
-  db.run('INSERT INTO tasks (title, completed, deadline, note, user_id, category_id) VALUES (?, ?, ?, ?, ?, ?)', 
-    [req.body.title, req.body.completed || 0, req.body.deadline || null, req.body.note || null, req.user.id, req.body.category_id], 
-    function () {
-      res.json({ 
-        id: this.lastID, 
-        title: req.body.title, 
-        completed: req.body.completed || 0, 
-        deadline: req.body.deadline || null, 
-        note: null,
-        user_id: req.user.id,
-        category_id: req.body.category_id
-      });
-    }
-  );
+// Neue Aufgabe hinzufügen
+app.post('/add_task', (req, res) => {
+    db.run('INSERT INTO tasks (title, completed, deadline, note, category_id) VALUES (?, ?, ?, ?, ?)',
+        [req.body.title, req.body.completed || 0, req.body.deadline || null, req.body.note || null, req.body.category_id], 
+        function () {
+            res.json({ id: this.lastID, title: req.body.title, completed: req.body.completed || 0, deadline: req.body.deadline || null, note: req.body.note || null, category_id: req.body.category_id });
+        }
+    );
 });
-
-app.put('/update_completed/:id', authenticateToken, (req, res) => {
-  db.run('UPDATE tasks SET completed = ? WHERE id = ? AND user_id = ?', 
-    [req.body.completed, req.params.id, req.user.id], 
-    function (err) {
-      if (err) {
-        res.status(400).json({ error: err.message });
-        return;
-      }
-      res.json({ message: 'Task status updated', changes: this.changes });
-    }
-  );
-});
-
-app.put('/update_note/:id', authenticateToken, (req, res) => {
-  db.run('UPDATE tasks SET note = ? WHERE id = ? AND user_id = ?', 
-    [req.body.note, req.params.id, req.user.id], 
-    function (err) {
-      if (err) {
-        res.status(400).json({ error: err.message });
-        return;
-      }
-      res.json({ message: 'Notiz erfolgreich aktualisiert.', changes: this.changes });
-    }
-  );
-});
-
-app.delete('/delete/:id', authenticateToken, (req, res) => {
-  db.run('DELETE FROM tasks WHERE id = ? AND user_id = ?', [req.params.id, req.user.id], (err) => {
-    if (err) {
-      res.status(400).json({ error: err.message });
-      return;
-    }
-    res.json({ message: "Eingabe gelöscht" });
-  });
-});
-
 
 // -------------------------------
 // Serverstart

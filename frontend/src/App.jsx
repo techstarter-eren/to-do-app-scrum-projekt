@@ -28,43 +28,13 @@ function App() {
     document.body.className = darkMode ? 'dark-mode' : '';
   }, [darkMode]);
 
-    // Dieser Hook lädt Kategorien UND ihre initialen Counts nur einmal beim Start.
   useEffect(() => {
-    const fetchInitialData = async () => {
-        try {
-            // Kategorien laden
-            const res = await fetch("http://localhost:3050/categories");
-            const categoriesData = await res.json();
+    fetch("http://localhost:3050/categories")
+      .then((res) => res.json())
+      .then(setCategories)
+      .catch((error) => console.error("Fehler beim Laden der Kategorien:", error));
+  }, []);
 
-            // Counts für jede Kategorie EINMALIG laden
-            const categoriesWithCounts = await Promise.all(
-                categoriesData.map(async (category) => {
-                    try {
-                        const resCounts = await fetch(`http://localhost:3050/category_task_counts/${category.id}`);
-                        const counts = await resCounts.json();
-                        // Stelle sicher, dass counts ein Objekt ist und die benötigten Properties hat, auch wenn vom Backend null oder undefined kommt
-                        const validatedCounts = {
-                            open_tasks: counts?.open_tasks ?? 0,
-                            completed_tasks: counts?.completed_tasks ?? 0
-                        };
-                        return { ...category, counts: validatedCounts }; // Kategorie mit validierten Counts zurückgeben
-                    } catch (countError) {
-                        console.error(`Fehler beim Laden der Counts für Kategorie ${category.id}:`, countError);
-                        // Fallback, wenn Counts nicht geladen werden können
-                        return { ...category, counts: { open_tasks: 0, completed_tasks: 0 } };
-                    }
-                })
-            );
-            setCategories(categoriesWithCounts); // State mit Kategorien UND initialen Counts setzen
-
-        } catch (error) {
-            console.error("Fehler beim Laden der Kategorien:", error);
-        }
-    };
-
-    fetchInitialData();
-    // Die leere Abhängigkeitsliste [] sorgt dafür, dass dieser Effekt nur beim ersten Rendern läuft.
-  }, []); 
   useEffect(() => {
     if (token) {
       fetch("http://localhost:3050/" , {
@@ -72,9 +42,6 @@ function App() {
     }).then((res) => res.json())
         .then(setTasks)
         .catch((error) => console.error("Fehler beim Laden der Aufgaben:", error));
-    } else {
-        // Wenn keine Kategorie ausgewählt ist, leere die Aufgabenliste
-        setTasks([]);
     }
   }, [selectedCategory]);
   };
@@ -147,18 +114,7 @@ function App() {
       body: JSON.stringify({ title, completed: false, deadline: deadline || null }),
     })
       .then((res) => res.json())
-      .then((neueAufgabe) => {
-          setTasks((prevTasks) => [...prevTasks, neueAufgabe]);
-          // Aktualisiere den Count der offenen Tasks für die Kategorie 
-          setCategories((prevCategories) =>
-            prevCategories.map(cat =>
-                cat.id === selectedCategory
-                // Erhöhe open_tasks um 1, stelle sicher, dass Counts existiert
-                ? { ...cat, counts: { ...cat.counts, open_tasks: (cat.counts?.open_tasks ?? 0) + 1 } }
-                : cat
-            )
-          );
-      })
+      .then((neueAufgabe) => setTasks([...tasks, neueAufgabe]))
       .catch((error) => console.error("Fehler beim Hinzufügen einer Aufgabe:", error));
 
     setTitle("");
@@ -166,9 +122,10 @@ function App() {
     setNote("");
   };
 
-  const categoryHinzufuegen = async () => {
+  const categoryHinzufuegen = () => {
     if (!newCategoryName.trim()) return;
 
+<<<<<<< HEAD
     try {
         const res = await fetch("http://localhost:3050/add_category", {
             method: "POST",
@@ -176,19 +133,21 @@ function App() {
             body: JSON.stringify({ name: newCategoryName }),
         });
         const neueKategorie = await res.json(); // Annahme: Backend gibt { id: ..., name: ... } zurück
+=======
+    fetch("http://localhost:3050/add_category", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name: newCategoryName }),
+    })
+      .then((res) => res.json())
+      .then((neueKategorie) => setCategories([...categories, neueKategorie]))
+      .catch((error) => console.error("Fehler beim Hinzufügen einer Kategorie:", error));
+>>>>>>> parent of 1d9ec3a (Alle erledigten Aufgaben in einer separaten Liste als offenen Aufgaben)
 
-        // Füge neue Kategorie mit initialen Counts hinzu
-        // Setze die Counts direkt auf 0, da sie neu ist. Kein erneuter Fetch nötig.
-        const neueKategorieMitCounts = { ...neueKategorie, counts: { open_tasks: 0, completed_tasks: 0 } };
-
-        // Direkte Integration ohne unnötiges Neurendern durch den entfernten useEffect
-        setCategories((prevCategories) => [...prevCategories, neueKategorieMitCounts]);
-        setNewCategoryName("");
-    } catch (error) {
-        console.error("Fehler beim Hinzufügen einer Kategorie:", error);
-    }
+    setNewCategoryName("");
   };
 
+<<<<<<< HEAD
   const categoryLoeschen = async (id) => {
     // Finde die Kategorie, bevor sie aus dem State entfernt wird (für Rollback oder Info)
     const categoryToDelete = categories.find(cat => cat.id === id);
@@ -345,8 +304,15 @@ function App() {
     });
   };
 
+=======
+  const categoryLoeschen = (id) => {
+    fetch(`http://localhost:3050/delete_category/${id}`, { method: "DELETE" })
+      .then(() => setCategories((prevCategories) => prevCategories.filter(cat => cat.id !== id)))
+      .catch((error) => console.error("Fehler beim Löschen einer Kategorie:", error));
+  };
+
+>>>>>>> parent of 1d9ec3a (Alle erledigten Aufgaben in einer separaten Liste als offenen Aufgaben)
   return (
-    // Das JSX bleibt unverändert, da die Logikänderungen das Problem beheben sollten.
     <div className={`container ${darkMode ? 'dark' : ''}`}>
       <div className="header">
         <h1>To-Do List</h1>
@@ -356,32 +322,25 @@ function App() {
       </div>
 
       <div className="category-selection">
-        {!selectedCategory ? (
-            <>
-                <h2>Kategorie auswählen</h2>
-                {/* Original-Kommentar: Die Klasse hier könnte angepasst werden, falls benötigt */}
-                <div className="category-buttons"> {/* Klassennamen können natürlich angepasst werden */}
-                    {categories.map(({ id, name, counts }) => (
-                        <div key={id} className="category-item">
-                            {/* Kategorie anzeigen mit Zählern */}
-                            <button onClick={() => setSelectedCategory(id)}>
-                                {/* Zeige Counts an, falls vorhanden. Nullish Coalescing stellt sicher, dass '0' angezeigt wird, wenn count 0 ist. */}
-                                {name} {counts ? `(${(counts.open_tasks ?? 0)}/${(counts.completed_tasks ?? 0)})` : ""}
-                            </button>
-                            {/* Löschbutton */}
-                            <button onClick={() => categoryLoeschen(id)} className="delete-button">🗑️</button>
-                        </div>
-                    ))}
-                </div>
-                <input
-                    value={newCategoryName}
-                    onChange={(e) => setNewCategoryName(e.target.value)}
-                    placeholder="Neue Kategorie..."
-                />
-                <button onClick={categoryHinzufuegen}>Kategorie hinzufügen</button>
-            </>
+        <h2>Kategorie auswählen</h2>
+        <div className="category-buttons">
+          {categories.map((category) => (
+            <div key={category.id} className="category-item">
+              <button onClick={() => setSelectedCategory(category.id)}>
+                {category.name}
+              </button>
+              <button onClick={() => categoryLoeschen(category.id)} className="delete-button">🗑️</button>
+            </div>
+          ))}
+        </div>
+
+        {selectedCategory ? (
+          <button onClick={() => setSelectedCategory(null)}>Zurück zur Kategorie-Auswahl</button>
         ) : (
-            <button onClick={() => setSelectedCategory(null)}>Zurück zur Kategorie-Auswahl</button>
+          <>
+            <input value={newCategoryName} onChange={(e) => setNewCategoryName(e.target.value)} placeholder="Neue Kategorie..." />
+            <button onClick={categoryHinzufuegen}>Kategorie hinzufügen</button>
+          </>
         )}
       </div>
 
@@ -393,72 +352,12 @@ function App() {
           <button disabled={!title.trim()} onClick={itemHinzufuegen}>Add</button>
 
           <ul className="task-list">
-            {/* Nicht erledigte Aufgaben */}
-            <h2>Offene Aufgaben</h2>
-            {tasks.filter(task => !task.completed).map(({ id, title, completed, deadline, note }) => (
-                <li key={id}>
-                    {/* Checkbox */}
-                    <input
-                        type="checkbox"
-                        checked={completed}
-                        onChange={() => taskStatusAktualisieren(id, completed)}
-                    />
-
-                    {/* Titel */}
-                    <span className={`task-text ${completed ? 'completed' : 'pending'}`}>
-                        {title}
-                    </span>
-
-                    {/* Deadline */}
-                    <p>Deadline: {deadline ? new Date(deadline).toLocaleString() : "Keine"}</p>
-
-                    {/* Notizen */}
-                    <textarea
-                        value={note || ""}
-                        placeholder="Notiz hinzufügen..."
-                        onChange={(e) => notizAktualisieren(id, e.target.value)}
-                        style={{ width: "100%", minHeight: "40px", marginTop: "8px" }}
-                    ></textarea>
-
-                    {/* X-Button */}
-                    <button onClick={() => itemLoeschen(id)} style={{ color: 'red', fontWeight: 'bold' }}>
-                        X
-                    </button>
-                </li>
-            ))}
-
-            {/* Erledigte Aufgaben */}
-            <h2>Erledigt</h2>
-            {tasks.filter(task => task.completed).map(({ id, title, completed, deadline, note }) => (
-                <li key={id}>
-                    {/* Checkbox */}
-                    <input
-                        type="checkbox"
-                        checked={completed}
-                        onChange={() => taskStatusAktualisieren(id, completed)}
-                    />
-
-                    {/* Titel */}
-                    <span className={`task-text ${completed ? 'completed' : 'pending'}`}>
-                        {title}
-                    </span>
-
-                    {/* Deadline */}
-                    <p>Deadline: {deadline ? new Date(deadline).toLocaleString() : "Keine"}</p>
-
-                    {/* Notizen */}
-                    <textarea
-                        value={note || ""}
-                        placeholder="Notiz hinzufügen..."
-                        onChange={(e) => notizAktualisieren(id, e.target.value)}
-                        style={{ width: "100%", minHeight: "40px", marginTop: "8px" }}
-                    ></textarea>
-
-                    {/* X-Button */}
-                    <button onClick={() => itemLoeschen(id)} style={{ color: 'red', fontWeight: 'bold' }}>
-                        X
-                    </button>
-                </li>
+            {tasks.map(({ id, title, completed, deadline, note }) => (
+              <li key={id}>
+                <span className={`task-text ${completed ? 'completed' : 'pending'}`}>{title}</span>
+                <p>Deadline: {deadline ? new Date(deadline).toLocaleString() : "Keine"}</p>
+                <textarea value={note || ""} onChange={(e) => setNote(e.target.value)} placeholder="Notiz bearbeiten..."></textarea>
+              </li>
             ))}
           </ul>
         </>
