@@ -95,7 +95,9 @@ function App() {
   };
 
   const categoryHinzufuegen = async () => {
-    if (!newCategoryName.trim()) return;
+    if (!newCategoryName.trim()) {
+        return;
+    }
 
     try {
         const res = await fetch("http://localhost:3050/add_category", {
@@ -363,7 +365,9 @@ function App() {
       </div>
 
       <div className="category-selection">
-        {!selectedCategory ? (
+        {selectedCategory ? (
+            <button onClick={() => setSelectedCategory(null)}>Zurück zur Kategoriewahl</button>
+        ) : (
             <>
                 <h2>Kategorie auswählen</h2>
                 {/* Original-Kommentar: Die Klasse hier könnte angepasst werden, falls benötigt */}
@@ -381,15 +385,16 @@ function App() {
                     ))}
                 </div>
                 <input
+                    type="text"
                     value={newCategoryName}
                     onChange={(e) => setNewCategoryName(e.target.value)}
                     placeholder="Neue Kategorie..."
                 />
                 <button onClick={categoryHinzufuegen}>Kategorie hinzufügen</button>
             </>
-        ) : (
+        ) } (
             <button onClick={() => setSelectedCategory(null)}>Zurück zur Kategorie-Auswahl</button>
-        )}
+        )
       </div>
 
       {selectedCategory && (
