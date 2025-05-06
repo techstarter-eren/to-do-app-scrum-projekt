@@ -3,6 +3,16 @@
   margin: 0 auto;
   padding: 2rem;
   text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  border-color: rgba(0, 0, 0, 0.1);
+  border-radius: 8px;
+  background-color: #fff;
+  box-shadow: 0 0 55px rgb(255, 0, 0);
 }
 
 .logo {
@@ -54,18 +64,27 @@ ul{
   input[type="text"] {
     padding: 8px;
     font-size: 16px;
-    border: 1px solid #ddd;
+    border: 1px solid #ff0303;
     border-radius: 4px;
     flex-grow: 1;
+    transition: border-color 0.3s;
+    
   }
   
   button {
+    font-size: 16px;
+    font-weight: bold;
+    background-color: #001aff;
     padding: 8px 16px;
-    background-color: #007bff;
+    background-color: #001aff;
     color: white;
     border: none;
     border-radius: 4px;
     cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background-color 0.3s;
   }
   
   button:disabled {
