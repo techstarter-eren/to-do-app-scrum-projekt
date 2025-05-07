@@ -1,3 +1,5 @@
+# frontend/Dockerfile
+
 # --- Stufe 1: Build-Umgebung ---
 # Verwende ein offizielles Node.js Image als Basis für den Build
 FROM node:18-alpine AS builder
