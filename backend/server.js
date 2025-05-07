@@ -49,10 +49,14 @@ function authenticateToken(req, res, next) {
     const authHeader = req.headers['authorization'];
     const token = authHeader && authHeader.split(' ')[1];
     
-    if (!token) return res.sendStatus(401);
+    if (!token) {
+        return res.sendStatus(401);
+    }
     
     jwt.verify(token, SECRET_KEY, (err, user) => {
-      if (err) return res.sendStatus(403);
+      if (err) {
+        return res.sendStatus(403);
+      }
       req.user = user;
       next();
     });
@@ -106,8 +110,11 @@ app.post('/register', async (req, res) => {
 // Kategorien abrufen
 app.get('/categories', (req, res) => {
     db.all('SELECT * FROM categories', (err, rows) => {
-        if (err) res.status(500).json({ error: err.message });
-        else res.json(rows);
+        if (err) {
+            res.status(500).json({ error: err.message });
+        } else {
+            res.json(rows);
+        }
     });
 });
 
@@ -121,8 +128,11 @@ app.post('/add_category', (req, res) => {
 // Kategorie löschen
 app.delete('/delete_category/:id', (req, res) => {
     db.run('DELETE FROM categories WHERE id = ?', req.params.id, function (err) {
-        if (err) res.status(400).json({ error: err.message });
-        else res.json({ message: "Kategorie gelöscht" });
+        if (err) {
+            res.status(400).json({ error: err.message });
+        } else {
+            res.json({ message: "Kategorie gelöscht" });
+        }
     });
 });
 
@@ -156,8 +166,11 @@ app.put('/update_completed/:id', (req, res) => {
 // Aufgaben einer bestimmten Kategorie abrufen
 app.get('/tasks/:categoryId', (req, res) => {
     db.all('SELECT * FROM tasks WHERE category_id = ?', req.params.categoryId, (err, rows) => {
-        if (err) res.status(500).json({ error: err.message });
-        else res.json(rows);
+        if (err) {
+            res.status(500).json({ error: err.message });
+        } else {
+            res.json(rows);
+        }
     });
 });
 
