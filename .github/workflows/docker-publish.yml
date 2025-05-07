@@ -1,0 +1,45 @@
+name: Docker Build and Push
+
+# Trigger: Diese Aktion wird ausgeführt, wenn ein Push zum 'main'-Branch erfolgt
+on:
+  push:
+    branches:
+      - main # Oder dein Hauptbranch, z.B. 'master'
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest # Die Aktion läuft auf einem von GitHub gehosteten Runner mit Ubuntu
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4 # Aktion, um den Code des Repositories auszuchecken
+
+      - name: Set up QEMU # Notwendig für das Bauen von Multi-Architektur-Images (optional, aber gute Praxis)
+        uses: docker/setup-qemu-action@v3
+
+      - name: Set up Docker Buildx # Erweitertes Build-Tool von Docker
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }} # Dein Docker Hub Benutzername
+          password: ${{ secrets.DOCKERHUB_TOKEN }}    # Dein Docker Hub Access Token
+
+      - name: Build and push Frontend image
+        uses: docker/build-push-action@v5
+        with:
+          context: ./frontend # Pfad zum Verzeichnis mit dem Frontend-Dockerfile
+          file: ./frontend/Dockerfile
+          push: true # Pushe das Image nach dem Bauen
+          tags: ${{ secrets.DOCKERHUB_USERNAME }}/todo-app-frontend:latest,${{ secrets.DOCKERHUB_USERNAME }}/todo-app-frontend:${{ github.sha }}
+          # Tags: 'latest' und ein Tag mit dem Git Commit SHA für Versionierung
+
+      - name: Build and push Backend image
+        uses: docker/build-push-action@v5
+        with:
+          context: ./backend # Pfad zum Verzeichnis mit dem Backend-Dockerfile
+          file: ./backend/Dockerfile
+          push: true # Pushe das Image nach dem Bauen
+          tags: ${{ secrets.DOCKERHUB_USERNAME }}/todo-app-backend:latest,${{ secrets.DOCKERHUB_USERNAME }}/todo-app-backend:${{ github.sha }}
+          # Tags: 'latest' und ein Tag mit dem Git Commit SHA für Versionierung
