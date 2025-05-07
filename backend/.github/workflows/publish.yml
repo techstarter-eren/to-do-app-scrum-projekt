@@ -1,7 +1,9 @@
 name: Publish to Docker
 on: push
 
-
 jobs:
- - name: Print a message
-   run: echo "Hello, GitHub Actions!"
+  print-message:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Print a message
+        run: echo "Hello, GitHub Actions!"
