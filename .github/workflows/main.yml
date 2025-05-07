@@ -1,9 +1,44 @@
 name: Publish to Docker
-on: push
-
+on:
+  push:
+    branches:
+      - main
+permissions:
+  packages: write
+  contents: read
 jobs:
-  print-message:
+  publish:
     runs-on: ubuntu-latest
     steps:
-      - name: Print a message
-        run: echo "Hello, GitHub Actions!"
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # Build and Push Image for Subfolder 1
+      - name: Docker meta for service1
+        id: meta1
+        uses: docker/metadata-action@v5
+        with:
+          images: ghcr.io/stekeb/publish-packages/todofrontend
+          tags: type=sha
+
+      - name: Build and Push service1
+        uses: docker/build-push-action@v5
+        with:
+          context: ./frontend  # Path to the first subfolder
+          push: true
+          tags: ${{ steps.meta1.outputs.tags }}
+
+      # Build and Push Image for Subfolder 2
+      - name: Docker meta for service2
+        id: meta2
+        uses: docker/metadata-action@v5
+        with:
+          images: ghcr.io/stekeb/publish-packages/todobackend
+          tags: type=sha
+
+      - name: Build and Push service2
+        uses: docker/build-push-action@v5
+        with:
+          context: ./backend  # Path to the second subfolder
+          push: true
+          tags: ${{ steps.meta2.outputs.tags }}
